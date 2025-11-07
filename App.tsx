@@ -32,7 +32,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
        if (item) {
         // Adiciona um "reviver" para converter strings de data de volta para objetos Date
         return JSON.parse(item, (k, v) => {
-          if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v)) {
+          if (typeof v === 'string' && /^\d{4}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v)) {
             return new Date(v);
           }
           return v;
