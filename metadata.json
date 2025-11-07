@@ -1,0 +1,7 @@
+{
+  "name": "Loccus AI",
+  "description": "Loccus AI é a ferramenta definitiva para gestores de tráfego local e especialistas em Google Meu Negócio. Poupe horas em análises, entregue relatórios impressionantes e conquiste mais clientes.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
