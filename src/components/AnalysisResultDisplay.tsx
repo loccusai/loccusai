@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AnalysisResult, AnalysisHistoryItem, GroundingChunk, CompanyData, SummaryPoint } from '../../types';
@@ -10,15 +10,24 @@ interface AnalysisResultDisplayProps {
 
 const AnalysisResultDisplay = ({ result, onGenerateProposal }: AnalysisResultDisplayProps) => {
     const { tableData, summaryTable, analysis, recommendations, hashtags, groundingChunks } = result;
+    const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
 
     const copyToClipboard = async (text: string) => {
+        if (isFeedbackVisible) return;
+
         try {
             await navigator.clipboard.writeText(text);
-            alert('Copiado para a área de transferência!');
+            setFeedbackMessage('Copiado para a área de transferência!');
         } catch (err) {
             console.error('Falha ao copiar texto: ', err);
-            alert('Não foi possível copiar o texto.');
+            setFeedbackMessage('Não foi possível copiar o texto.');
         }
+
+        setIsFeedbackVisible(true);
+        setTimeout(() => {
+            setIsFeedbackVisible(false);
+        }, 2500);
     };
     
     const renderGroundingSources = (chunks?: GroundingChunk[]) => {
@@ -172,6 +181,13 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal }: AnalysisResultDis
 
     return (
         <div className="results-container">
+            <header className="dashboard-header">
+                <h1>Análise: {(result as AnalysisHistoryItem).companyName}</h1>
+            </header>
+            <div className={`copy-notification ${isFeedbackVisible ? 'show' : ''}`}>
+                {feedbackMessage}
+            </div>
+
             {onGenerateProposal && (
                 <div className="card-header-with-action" style={{ marginBottom: '2rem' }}>
                     <button className="copy-button" onClick={generatePdf}>

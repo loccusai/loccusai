@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
 import { AnalysisHistoryItem, AnalysisResult, Proposal, ProposalServiceItem, ProposalStatus, ServiceLibraryItem, UserProfile } from '../types';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { analyzeCompanyPresence } from '../services/geminiService';
+import { analyzeCompanyPresence } from '../../services/geminiService';
 import { parseMarkdownTable } from './utils/parsers';
 
 import LandingPage from './components/LandingPage';
@@ -34,8 +34,7 @@ if (supabaseUrl && !supabaseUrl.includes('SEU_SUPABASE_URL_AQUI') && supabaseAno
 export default function App() {
     type Page = 'landing' | 'auth' | 'dashboard' | 'app' | 'result' | 'profile' | 'settings' | 'proposalBuilder' | 'proposalsList' | 'serviceLibrary';
     const [page, setPage] = useState<Page>('landing');
-    const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
-    const [currentCompanyName, setCurrentCompanyName] = useState('');
+    const [currentResult, setCurrentResult] = useState<AnalysisHistoryItem | null>(null);
     const [history, setHistory] = useLocalStorage<AnalysisHistoryItem[]>('analysisHistory', []);
     const [proposals, setProposals] = useLocalStorage<Proposal[]>('proposals', []);
     const [theme, setTheme] = useLocalStorage<string>('theme', 'light');
@@ -146,8 +145,7 @@ export default function App() {
             });
         }
         
-        setCurrentResult(result);
-        setCurrentCompanyName(companyName);
+        setCurrentResult(newHistoryItem);
         setPage('result');
     };
 
@@ -253,7 +251,6 @@ export default function App() {
             case 'result':
                 return currentResult && (
                     <>
-                    <header className="dashboard-header"><h1>Análise: {currentCompanyName}</h1></header>
                     <main>
                         <button className="back-button" onClick={() => { setCurrentResult(null); setPage('dashboard'); }}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>

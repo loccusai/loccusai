@@ -119,12 +119,49 @@ const DashboardPage = ({
         }
     };
     
+    const handleExportCSV = () => {
+        if (filteredHistory.length === 0) {
+            alert("Não há dados para exportar.");
+            return;
+        }
+
+        const headers = ["ID", "Nome da Empresa", "Data", "Análise", "Recomendações"];
+
+        const escapeCSV = (str: string) => {
+            if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvRows = [headers.join(',')];
+
+        filteredHistory.forEach(item => {
+            const row = [
+                item.id,
+                item.companyName,
+                new Date(item.date).toLocaleString('pt-BR'),
+                item.analysis.replace(/^###\s*Análise Detalhada\s*/i, '').replace(/\s+/g, ' ').trim(),
+                item.recommendations.replace(/^###\s*Recomendações Estratégicas\s*/i, '').replace(/\s+/g, ' ').trim()
+            ];
+            csvRows.push(row.map(field => escapeCSV(String(field))).join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'historico_analises_loccus_ai.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     if (viewingAnalysis) {
         return (
             <>
-                <header className="dashboard-header">
-                    <h1>Análise: {viewingAnalysis.companyName}</h1>
-                </header>
                 <main>
                     <button className="back-button" onClick={() => setViewingAnalysis(null)}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -173,7 +210,15 @@ const DashboardPage = ({
                 </div>
             </div>
             <div className="card history-card">
-                <h2>Histórico de Análises</h2>
+                <div className="proposals-list-header">
+                    <h2>Histórico de Análises</h2>
+                    {filteredHistory.length > 0 && (
+                        <button className="copy-button" onClick={handleExportCSV}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Exportar CSV
+                        </button>
+                    )}
+                </div>
                 <div className="history-search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.5 6.5 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg>
                     <input 
