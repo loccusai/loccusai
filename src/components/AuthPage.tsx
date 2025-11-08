@@ -11,8 +11,10 @@ if (supabaseUrl && !supabaseUrl.includes('SEU_SUPABASE_URL_AQUI') && supabaseAno
 
 const AuthPage = () => {
     const [isLoginView, setIsLoginView] = useState(false);
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const authDisabledMessage = "A autenticação está desabilitada. Para ativar, o desenvolvedor precisa configurar as credenciais do Supabase no arquivo index.html.";
@@ -25,11 +27,29 @@ const AuthPage = () => {
         }
         setLoading(true);
         setError(null);
+
+        if (!isLoginView && password !== confirmPassword) {
+            setError("As senhas não coincidem.");
+            setLoading(false);
+            return;
+        }
+
         try {
-            const { error } = isLoginView
-                ? await supabase.auth.signInWithPassword({ email, password })
-                : await supabase.auth.signUp({ email, password });
-            if (error) throw error;
+            if (isLoginView) {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.auth.signUp({ 
+                    email, 
+                    password,
+                    options: {
+                        data: {
+                            full_name: name,
+                        }
+                    }
+                });
+                if (error) throw error;
+            }
             // O listener onAuthStateChange no App.tsx cuidará da navegação.
         } catch (err: any) {
             setError(err.error_description || err.message);
@@ -58,8 +78,10 @@ const AuthPage = () => {
                 </div>
                  {error && <p className="auth-error">{error}</p>}
                 <form className="auth-form" onSubmit={handleAuthAction}>
+                    {!isLoginView && <input type="text" placeholder="Nome" required value={name} onChange={e => setName(e.target.value)} />}
                     <input type="email" placeholder="E-mail" required value={email} onChange={e => setEmail(e.target.value)} />
                     <input type="password" placeholder="Senha" required value={password} onChange={e => setPassword(e.target.value)} />
+                    {!isLoginView && <input type="password" placeholder="Confirmar senha" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />}
                     <button type="submit" className="auth-submit-btn" disabled={loading}>
                         {loading ? (isLoginView ? 'ENTRANDO...' : 'CRIANDO...') : (isLoginView ? 'Entrar' : 'Criar uma conta')}
                     </button>

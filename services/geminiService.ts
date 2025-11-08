@@ -6,20 +6,24 @@ const SEPARATOR_SUMMARY = "---SUMMARY_BREAK---";
 const SEPARATOR_RECOMMENDATION = "---RECOMMENDATION_BREAK---";
 const SEPARATOR_HASHTAG = "---HASHTAG_BREAK---";
 
-function buildPrompt(companyName: string, city: string, state: string, keywords: string[]): string {
+function buildPrompt(companyName: string, street: string, number: string, neighborhood: string, city: string, state: string, keywords: string[]): string {
+  const addressParts = [street, number, neighborhood].filter(Boolean);
+  const mainAddress = addressParts.join(', ');
+  const locationString = mainAddress ? `${mainAddress} - ${city}, ${state}` : `${city}, ${state}`;
+  
   return `
     Você é um assistente de análise de negócios local com acesso ao Google Maps e à web. Sua tarefa é realizar uma pesquisa DETALhada e GEOGRAFICAMENTE RESTRITA sobre a presença digital e competitiva de uma empresa.
 
     **Dados para a Análise:**
     *   **Nome da empresa para analisar**: "${companyName}"
-    *   **Localização (Cidade/Estado)**: "${city}, ${state}"
+    *   **Localização (Endereço)**: "${locationString}"
     *   **Palavras-chave do Negócio**: "${keywords.join(', ')}"
 
     **Instrução de Clareza**: Em TODAS as seções de texto geradas (tabelas, análise e recomendações), sempre que usar uma sigla técnica ou de marketing (como GMB, SEO), explique seu significado entre parênteses na primeira vez que a sigla aparecer. Exemplo: "GMB (Google Meu Negócio)".
 
     Siga estas instruções estritamente:
 
-    1.  **Pesquisa Focada**: CONCENTRE SUA PESQUISA EXCLUSIVAMENTE na cidade e estado fornecidos (${city}, ${state}). Use as palavras-chave para entender o setor da empresa e encontrar resultados relevantes. Pesquise no Google Maps, Google Meu Negócio (GMB), sites e redes sociais. Seja persistente.
+    1.  **Pesquisa Focada**: CONCENTRE SUA PESQUISA EXCLUSIVAMENTE na localização fornecida (${locationString}). Use as palavras-chave para entender o setor da empresa e encontrar resultados relevantes. Pesquise no Google Maps, Google Meu Negócio (GMB), sites e redes sociais. Seja persistente.
     2.  **Análise da Empresa Alvo**: Encontre a empresa "${companyName}" dentro da localização especificada. Se não a encontrar, indique "NÃO" na coluna "Aparece nas buscas" e prossiga com a análise da concorrência local.
     3.  **Identificação de Concorrentes Locais**: Identifique os 3 a 5 principais concorrentes DIRETOS na mesma cidade (${city}) e estado (${state}), usando as palavras-chave como guia para a categoria de negócio.
     4.  **Coleta de Dados**: Para a empresa alvo e cada concorrente, colete as seguintes informações:
@@ -62,7 +66,7 @@ function buildPrompt(companyName: string, city: string, state: string, keywords:
     `;
 }
 
-export const analyzeCompanyPresence = async (companyName: string, city: string, state: string, keywords: string[], location: LatLng | null) => {
+export const analyzeCompanyPresence = async (companyName: string, street: string, number: string, neighborhood: string, city: string, state: string, keywords: string[], location: LatLng | null) => {
   if (!process.env.API_KEY) {
     throw new Error("API key not found. Please set the API_KEY environment variable.");
   }
@@ -85,7 +89,7 @@ export const analyzeCompanyPresence = async (companyName: string, city: string, 
   
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: buildPrompt(companyName, city, state, keywords),
+    contents: buildPrompt(companyName, street, number, neighborhood, city, state, keywords),
     config: config,
   });
 

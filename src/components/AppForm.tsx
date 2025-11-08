@@ -19,6 +19,9 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
     const [companyName, setCompanyName] = useState('');
     const [city, setCity] = useState(userProfile?.companyCity || '');
     const [state, setState] = useState(userProfile?.companyState || '');
+    const [street, setStreet] = useState('');
+    const [number, setNumber] = useState('');
+    const [neighborhood, setNeighborhood] = useState('');
     const [keywords, setKeywords] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -71,7 +74,7 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
 
         try {
             const keywordsArray = keywords.split(',').map(k => k.trim()).filter(Boolean);
-            const { responseText, groundingChunks } = await analyzeCompanyPresence(companyName, city, state, keywordsArray, location);
+            const { responseText, groundingChunks } = await analyzeCompanyPresence(companyName, street, number, neighborhood, city, state, keywordsArray, location);
 
             const [tablePart, rest] = responseText.split(SEPARATOR_MAIN);
             const [summaryTablePart, restAfterSummary] = rest.split(SEPARATOR_SUMMARY);
@@ -111,6 +114,8 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
                 if (data.erro) throw new Error('CEP inválido');
                 setCity(data.localidade);
                 setState(data.uf);
+                setStreet(data.logradouro);
+                setNeighborhood(data.bairro);
             } catch (err) {
                 console.warn("Não foi possível buscar o CEP:", err);
             }
@@ -147,13 +152,40 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
                  <input
                     type="text"
-                    placeholder="CEP (para preencher cidade/estado)"
+                    placeholder="CEP (para preencher endereço)"
                     onBlur={handleCepBlur}
                     maxLength={9}
                  />
             </div>
             
              <div className="address-fields-grid">
+                <div className="input-group address-street">
+                    <input
+                        type="text"
+                        placeholder="Rua / Avenida"
+                        value={street}
+                        onChange={(e) => setStreet(e.target.value)}
+                        style={{ paddingLeft: '12px' }}
+                    />
+                </div>
+                 <div className="input-group address-number">
+                    <input
+                        type="text"
+                        placeholder="Nº"
+                        value={number}
+                        onChange={(e) => setNumber(e.target.value)}
+                        style={{ paddingLeft: '12px' }}
+                    />
+                </div>
+                <div className="input-group address-neighborhood">
+                    <input
+                        type="text"
+                        placeholder="Bairro"
+                        value={neighborhood}
+                        onChange={(e) => setNeighborhood(e.target.value)}
+                        style={{ paddingLeft: '12px' }}
+                    />
+                </div>
                 <div className="input-group address-city">
                     <input
                         type="text"
