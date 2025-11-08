@@ -87,14 +87,6 @@ function parseMarkdownTable<T extends Record<string, string>>(markdown: string):
     });
 }
 
-const LoadingSkeleton = () => (
-    <div className="results-container">
-        <div className="card"><div className="skeleton skeleton-h3" style={{ width: '40%' }}></div><div className="skeleton skeleton-text"></div><div className="skeleton skeleton-text" style={{ width: '80%' }}></div></div>
-        <div className="card"><div className="skeleton skeleton-h3" style={{ width: '50%' }}></div><div className="skeleton skeleton-text"></div><div className="skeleton skeleton-text" style={{ width: '90%' }}></div></div>
-        <div className="card"><div className="skeleton skeleton-h3" style={{ width: '45%' }}></div><div className="skeleton skeleton-text"></div><div className="skeleton skeleton-text" style={{ width: '70%' }}></div></div>
-    </div>
-);
-
 // Componente de troca de tema
 const ThemeSwitch = ({ theme, toggleTheme }: { theme: string; toggleTheme: () => void; }) => (
     <div 
@@ -121,7 +113,7 @@ const testimonials = [
         quote: "Eu passava horas montando relatórios de concorrentes. Com o Loccus AI, faço em minutos o que antes levava um dia inteiro. Meus clientes ficam impressionados e eu ganho mais tempo para focar em estratégia.",
         author: "João P.",
         title: "Gestor de Tráfego",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
+        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
     },
     {
         quote: "Levar um relatório da Loccus AI para la reunião de prospecção muda o jogo. O cliente vê na hora os pontos fracos e onde podemos atuar. Fechei 3 novos contratos no último mês usando essa tática.",
@@ -596,7 +588,8 @@ const BarChart = ({ data, title, highlightLabel }: { data: { label: string, valu
         if (label.length <= maxLength) return label;
         return label.substring(0, maxLength - 3) + '...';
     };
-    const MAX_LABEL_LENGTH = 25;
+    // Reduced max length for better mobile responsiveness.
+    const MAX_LABEL_LENGTH = 18;
 
     // Adjusted dimensions for better responsiveness on smaller screens.
     // Fixed padding for labels prevents the chart from becoming too wide.
@@ -861,6 +854,26 @@ const AnalysisToolPage = ({ onBack, onAnalysisComplete, theme, toggleTheme, onNa
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
     const [isCepLocked, setIsCepLocked] = useState(false);
     const [isCepLoading, setIsCepLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('Aguarde, a IA está buscando os dados...');
+
+    const loadingMessages = useMemo(() => [
+        'Analisando concorrentes locais...',
+        'Buscando dados no Google Maps e na web...',
+        'Compilando o relatório competitivo...',
+        'Gerando recomendações estratégicas...',
+        'Finalizando a análise, só mais alguns instantes...'
+    ], []);
+
+    useEffect(() => {
+        if (isLoading) {
+            let messageIndex = 0;
+            const intervalId = setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                setLoadingMessage(loadingMessages[messageIndex]);
+            }, 3500);
+            return () => clearInterval(intervalId);
+        }
+    }, [isLoading, loadingMessages]);
 
     const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newCep = e.target.value.replace(/\D/g, '');
@@ -987,6 +1000,12 @@ const AnalysisToolPage = ({ onBack, onAnalysisComplete, theme, toggleTheme, onNa
             <main>
                 <button className="back-button" onClick={onBack}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>Voltar ao Dashboard</button>
                 <div className="card form-card">
+                    {isLoading && (
+                        <div className="loading-overlay">
+                            <div className="loading-spinner"></div>
+                            <p className="loading-text">{loadingMessage}</p>
+                        </div>
+                    )}
                     <h2 className="form-headline">Gere uma análise local para seu cliente.</h2><p className="form-description">Preencha os dados do cliente para iniciar a análise competitiva e gerar o relatório.</p>
                     <form onSubmit={handleSubmit}>
                         <fieldset disabled={isLoading} style={{border: 0, margin: 0, padding: 0}}>
@@ -1002,12 +1021,20 @@ const AnalysisToolPage = ({ onBack, onAnalysisComplete, theme, toggleTheme, onNa
                             </div>
 
                             <div className="input-group"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.5 6.5 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"></path></svg><input id="keywords" type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="Mínimo 3 palavras-chave (ex: pizzaria, delivery, forno a lenha)" required /></div>
-                            <button type="submit" className={isLoading ? 'is-loading' : ''}>{isLoading ? 'ANALISANDO...' : 'GERAR ANÁLISE'}</button>
+                            <button type="submit" disabled={isLoading}>
+                                {isLoading ? (
+                                    <>
+                                        <svg className="button-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                                        ANALISANDO...
+                                    </>
+                                ) : (
+                                    'GERAR ANÁLISE'
+                                )}
+                            </button>
                         </fieldset>
                     </form>
                 </div>
                 {error && <div className="card error-box">{error}</div>}
-                {isLoading && !analysisResult && <LoadingSkeleton />}
                 {!isLoading && analysisResult && <AnalysisResultDisplay result={{id: '', date: new Date(), companyName, ...analysisResult}} onGenerateProposal={onNavigateToProposalBuilder} />}
             </main>
         </>
@@ -2169,7 +2196,7 @@ const App: React.FC = () => {
             }
         }
 
-        if (!userProfile) return <LoadingSkeleton />;
+        if (!userProfile) return null;
 
         switch (currentView) {
             case 'app': return <AnalysisToolPage onBack={() => setCurrentView('dashboard')} onAnalysisComplete={handleAnalysisComplete} theme={theme} toggleTheme={toggleTheme} onNavigateToProposalBuilder={handleNavigateToProposalBuilder} />;
