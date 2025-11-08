@@ -121,7 +121,7 @@ const testimonials = [
         quote: "Eu passava horas montando relatórios de concorrentes. Com o Loccus AI, faço em minutos o que antes levava um dia inteiro. Meus clientes ficam impressionados e eu ganho mais tempo para focar em estratégia.",
         author: "João P.",
         title: "Gestor de Tráfego",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
+        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
     },
     {
         quote: "Levar um relatório da Loccus AI para la reunião de prospecção muda o jogo. O cliente vê na hora os pontos fracos e onde podemos atuar. Fechei 3 novos contratos no último mês usando essa tática.",
@@ -591,11 +591,19 @@ const DashboardPage = ({ onNavigateToApp, onLogout, history, theme, toggleTheme,
 const BarChart = ({ data, title, highlightLabel }: { data: { label: string, value: number }[], title: string, highlightLabel: string }) => {
     if (!data || data.length === 0) return null;
 
-    const maxLabelLength = Math.max(...data.map(d => d.label.length));
-    const leftPadding = maxLabelLength * 7; // Dynamically set padding based on the longest label
-    const barAreaWidth = 300; // Fixed width for the bars area
-    const rightPadding = 40; // Space for value text
-    const width = leftPadding + barAreaWidth + rightPadding; // Calculate total width dynamically
+    // Truncates long labels to ensure they fit on mobile screens.
+    const truncateLabel = (label: string, maxLength: number) => {
+        if (label.length <= maxLength) return label;
+        return label.substring(0, maxLength - 3) + '...';
+    };
+    const MAX_LABEL_LENGTH = 25;
+
+    // Adjusted dimensions for better responsiveness on smaller screens.
+    // Fixed padding for labels prevents the chart from becoming too wide.
+    const leftPadding = 140; 
+    const barAreaWidth = 250;
+    const rightPadding = 50; 
+    const width = leftPadding + barAreaWidth + rightPadding;
 
     const topPadding = 20;
     const bottomPadding = 20;
@@ -604,25 +612,32 @@ const BarChart = ({ data, title, highlightLabel }: { data: { label: string, valu
     const height = data.length * (barHeight + barSpacing) + topPadding + bottomPadding;
     
     const maxValue = Math.max(...data.map(d => d.value), 0);
-    // Scale function is now based on the consistent bar area width
-    const xScale = (value: number) => (value / maxValue) * barAreaWidth;
+    // If maxValue is 0, this will cause division by zero. Handle this case.
+    const xScale = (value: number) => (maxValue > 0 ? (value / maxValue) * barAreaWidth : 0);
 
     return (
         <div className="chart-container">
             <h4>{title}</h4>
             <div className="bar-chart">
-                <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
+                <svg 
+                    width="100%" 
+                    height={height} 
+                    viewBox={`0 0 ${width} ${height}`}
+                    // Use preserveAspectRatio to ensure consistent scaling
+                    preserveAspectRatio="xMinYMid meet"
+                >
                     <line x1={leftPadding} y1={topPadding} x2={leftPadding} y2={height - bottomPadding} className="axis-line" />
                     {data.map((d, i) => {
                         const y = i * (barHeight + barSpacing) + topPadding;
                         const barWidth = d.value >= 0 ? xScale(d.value) : 0;
                         const isHighlight = d.label === highlightLabel;
+                        const displayLabel = truncateLabel(d.label, MAX_LABEL_LENGTH);
 
                         return (
                             <g key={d.label}>
                                 <text x={leftPadding - 8} y={y + barHeight / 2} dy=".35em" className="bar-label">
-                                    <title>{d.label}</title>
-                                    {d.label}
+                                    <title>{d.label}</title> {/* Full label on hover */}
+                                    {displayLabel}
                                 </text>
                                 <rect 
                                     x={leftPadding} 
@@ -634,7 +649,9 @@ const BarChart = ({ data, title, highlightLabel }: { data: { label: string, valu
                                     ry="4"
                                 />
                                 <text x={leftPadding + barWidth + 5} y={y + barHeight / 2} dy=".35em" className="bar-value">
-                                    {d.value.toLocaleString('pt-BR')}
+                                    {title.toLowerCase().includes('nota') 
+                                      ? d.value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) 
+                                      : d.value.toLocaleString('pt-BR')}
                                 </text>
                             </g>
                         );
