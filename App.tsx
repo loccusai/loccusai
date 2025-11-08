@@ -6,9 +6,7 @@ import autoTable from 'jspdf-autotable';
 import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
 
 // --- SUPABASE CLIENT SETUP (COM FALLBACK) ---
-// Login desabilitado temporariamente. A aplicação usará o Local Storage.
 let supabase: SupabaseClient | null = null;
-/*
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
@@ -22,7 +20,6 @@ if (supabaseUrl && !supabaseUrl.includes('SEU_SUPABASE_URL_AQUI') && supabaseAno
 } else {
     console.warn("Supabase não configurado. A aplicação usará o Local Storage como fallback. Funcionalidades de sincronização e multi-usuário estarão desativadas.");
 }
-*/
 
 // --- HOOK PARA LOCAL STORAGE ---
 function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -113,7 +110,7 @@ const testimonials = [
         quote: "Eu passava horas montando relatórios de concorrentes. Com o Loccus AI, faço em minutos o que antes levava um dia inteiro. Meus clientes ficam impressionados e eu ganho mais tempo para focar em estratégia.",
         author: "João P.",
         title: "Gestor de Tráfego",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
+        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
     },
     {
         quote: "Levar um relatório da Loccus AI para la reunião de prospecção muda o jogo. O cliente vê na hora os pontos fracos e onde podemos atuar. Fechei 3 novos contratos no último mês usando essa tática.",
@@ -1469,9 +1466,8 @@ const App: React.FC = () => {
 
     const [theme, setTheme] = useLocalStorage<string>('theme', (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
     
-    // Define o estado inicial para pular o login e ir direto para o dashboard
-    const [session, setSession] = useState<Session | null>({ user: { id: 'local_user', email: 'local@user.com' } } as any);
-    const [currentView, setCurrentView] = useState<View>('dashboard');
+    const [session, setSession] = useState<Session | null>(null);
+    const [currentView, setCurrentView] = useState<View>('landing');
 
     // States geridos por Local Storage ou Supabase
     const [userProfile, setUserProfile] = useLocalStorage<UserProfile | null>('loccus_userProfile', null);
@@ -1488,22 +1484,21 @@ const App: React.FC = () => {
 
     const toggleTheme = () => setTheme(p => (p === 'dark' ? 'light' : 'dark'));
 
-    // Lógica de inicialização para o modo Local Storage
-    useEffect(() => {
-        // Apenas garante que um perfil de usuário exista no modo local, sem alterar a visão
-        if (!userProfile) {
-            setUserProfile({ id: 'local_user', name: 'Usuário Local', email: 'local@user.com', picture: '' });
-        }
-    }, []);
-
-    // Busca dados do Supabase (atualmente desabilitado)
+    // Busca dados do Supabase
     const fetchProfileAndData = async (userId: string, currentSession: Session) => {
         if (!supabase) return;
         try {
             // Perfil
             let { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
             if (!profile) {
-                const { data: newProfile } = await supabase.from('profiles').insert({ id: userId, name: currentSession.user.user_metadata?.name || currentSession.user.email, email: currentSession.user.email, picture: currentSession.user.user_metadata?.picture }).select().single();
+                const { data: newProfile, error } = await supabase.from('profiles').insert({ 
+                    id: userId, 
+                    name: currentSession.user.user_metadata?.full_name || currentSession.user.email, 
+                    email: currentSession.user.email, 
+                    picture: currentSession.user.user_metadata?.picture 
+                }).select().single();
+                
+                if (error) throw error;
                 profile = newProfile;
             }
             setUserProfile(profile);
@@ -1517,6 +1512,44 @@ const App: React.FC = () => {
         } catch (error) { console.error("Erro ao buscar dados:", error); }
     };
     
+    // Listener de autenticação do Supabase e fallback para local storage
+    useEffect(() => {
+        if (supabase) {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                setSession(session);
+                if (session) {
+                    setCurrentView('dashboard');
+                    fetchProfileAndData(session.user.id, session);
+                }
+            });
+
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+                setSession(session);
+                if (session) {
+                    setCurrentView('dashboard');
+                    fetchProfileAndData(session.user.id, session);
+                } else {
+                    // Limpa os dados ao deslogar
+                    setUserProfile(null);
+                    setAnalysisHistory([]);
+                    setProposalsHistory([]);
+                    setCurrentView('landing');
+                }
+            });
+
+            return () => subscription.unsubscribe();
+        } else {
+            // Se o Supabase não estiver configurado, mantém o modo offline
+            const localSession = { user: { id: 'local_user', email: 'local@user.com' } } as any;
+            setSession(localSession);
+            if (!userProfile) {
+                setUserProfile({ id: 'local_user', name: 'Usuário Local', email: 'local@user.com', picture: '' });
+            }
+            setCurrentView('dashboard');
+        }
+    }, []); // Executa apenas uma vez na montagem
+
+
     // --- FUNÇÕES DE MANIPULAÇÃO DE DADOS (SUPABASE/LOCAL) ---
 
     const handleLogout = async () => {
@@ -2190,28 +2223,86 @@ const App: React.FC = () => {
 
     const renderContent = () => {
         if (!session) {
-            switch (currentView) {
-                case 'login': return <AuthPage />;
-                default: return <LandingPage onStart={() => setCurrentView('login')} />;
-            }
+            if (currentView === 'login') return <AuthPage />;
+            return <LandingPage onStart={() => setCurrentView('login')} />;
         }
 
-        if (!userProfile) return null;
-
-        switch (currentView) {
-            case 'app': return <AnalysisToolPage onBack={() => setCurrentView('dashboard')} onAnalysisComplete={handleAnalysisComplete} theme={theme} toggleTheme={toggleTheme} onNavigateToProposalBuilder={handleNavigateToProposalBuilder} />;
-            case 'profile': return <ProfilePage userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onBack={() => setCurrentView('dashboard')} theme={theme} toggleTheme={toggleTheme} />;
-            case 'settings': return <SettingsPage userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onBack={() => setCurrentView('dashboard')} theme={theme} toggleTheme={toggleTheme} onNavigateToServiceLibrary={() => setCurrentView('serviceLibrary')} />;
-            case 'serviceLibrary': return <ServiceLibraryPage userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onBack={() => setCurrentView('dashboard')} theme={theme} toggleTheme={toggleTheme} />;
-            case 'proposalsList': return <ProposalsListPage proposals={proposalsHistory} onBack={() => setCurrentView('dashboard')} onNewProposal={() => { const lastAnalysis = analysisHistory[0]; if (lastAnalysis) { handleNavigateToProposalBuilder(lastAnalysis); } else { alert("Crie uma análise primeiro para poder gerar um orçamento."); setCurrentView('app'); } }} onEditProposal={handleEditProposal} onDeleteProposal={handleDeleteProposal} onUpdateProposalStatus={handleUpdateProposalStatus} onDuplicateProposal={handleDuplicateProposal} theme={theme} toggleTheme={toggleTheme} />;
-            case 'proposalBuilder': return activeAnalysisForProposal ? <ProposalBuilderPage analysis={activeAnalysisForProposal} existingProposal={proposalsHistory.find(p => p.analysisId === activeAnalysisForProposal.id)} onSave={handleSaveProposal} onBack={() => setCurrentView('proposalsList')} userProfile={userProfile}/> : <p>Análise não encontrada.</p>;
-            default: return <DashboardPage onNavigateToApp={() => setCurrentView('app')} onLogout={handleLogout} history={analysisHistory} theme={theme} toggleTheme={toggleTheme} userProfile={userProfile} onNavigateToProfile={() => setCurrentView('profile')} onNavigateToSettings={() => setCurrentView('settings')} onNavigateToProposalsList={() => setCurrentView('proposalsList')} onNavigateToProposalBuilder={handleNavigateToProposalBuilder} onUpdateHistoryItem={handleUpdateHistoryItem} onDeleteHistoryItem={handleDeleteHistoryItem} onNavigateToServiceLibrary={() => setCurrentView('serviceLibrary')} />;
+        if (currentView === 'dashboard') {
+            return <DashboardPage 
+                onNavigateToApp={() => setCurrentView('app')}
+                onLogout={handleLogout}
+                history={analysisHistory}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                userProfile={userProfile}
+                onNavigateToProfile={() => setCurrentView('profile')}
+                onNavigateToSettings={() => setCurrentView('settings')}
+                onNavigateToProposalsList={() => setCurrentView('proposalsList')}
+                onNavigateToProposalBuilder={handleNavigateToProposalBuilder}
+                onUpdateHistoryItem={handleUpdateHistoryItem}
+                onDeleteHistoryItem={handleDeleteHistoryItem}
+                onNavigateToServiceLibrary={() => setCurrentView('serviceLibrary')}
+            />;
         }
+
+        if (currentView === 'app') {
+            return <AnalysisToolPage 
+                onBack={() => setCurrentView('dashboard')} 
+                onAnalysisComplete={(result, companyName) => {
+                    handleAnalysisComplete(result, companyName);
+                }}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                onNavigateToProposalBuilder={handleNavigateToProposalBuilder}
+            />;
+        }
+        
+        if (currentView === 'profile' && userProfile) {
+            return <ProfilePage userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onBack={() => setCurrentView('dashboard')} theme={theme} toggleTheme={toggleTheme}/>;
+        }
+
+        if (currentView === 'settings' && userProfile) {
+            return <SettingsPage userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onBack={() => setCurrentView('dashboard')} theme={theme} toggleTheme={toggleTheme} onNavigateToServiceLibrary={() => setCurrentView('serviceLibrary')} />;
+        }
+
+        if (currentView === 'proposalsList') {
+            return <ProposalsListPage 
+                proposals={proposalsHistory} 
+                onBack={() => setCurrentView('dashboard')} 
+                onNewProposal={() => setCurrentView('app')}
+                onEditProposal={handleEditProposal}
+                onDeleteProposal={handleDeleteProposal}
+                onUpdateProposalStatus={handleUpdateProposalStatus}
+                onDuplicateProposal={handleDuplicateProposal}
+                theme={theme} 
+                toggleTheme={toggleTheme}
+            />;
+        }
+
+        if (currentView === 'proposalBuilder' && activeAnalysisForProposal) {
+            const existingProposal = proposalsHistory.find(p => p.analysisId === activeAnalysisForProposal.id);
+            return <ProposalBuilderPage
+                analysis={activeAnalysisForProposal}
+                existingProposal={existingProposal}
+                onSave={handleSaveProposal}
+                onBack={() => setCurrentView('proposalsList')}
+                userProfile={userProfile}
+            />;
+        }
+        
+        if (currentView === 'serviceLibrary' && userProfile) {
+            return <ServiceLibraryPage userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onBack={() => setCurrentView('dashboard')} theme={theme} toggleTheme={toggleTheme} />;
+        }
+
+        return null; // Fallback, não deve ser alcançado
     };
 
-    const containerClass = `app-container ${['landing', 'login'].includes(currentView) && !session ? 'is-fullpage' : ''}`;
-    
-    return <div className={containerClass}>{renderContent()}</div>;
+    return (
+        <div className={`app-container theme-${theme}`}>
+            {renderContent()}
+        </div>
+    );
 };
 
+// FIX: Export the App component to be used in index.tsx
 export default App;
