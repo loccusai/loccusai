@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AnalysisResult, LatLng, UserProfile } from '../../types';
+import { AnalysisResult, UserProfile } from '../../types';
 import { analyzeCompanyPresence } from '../../services/geminiService';
 import { parseMarkdownTable } from '../utils/parsers';
 import { CompanyData, SummaryPoint } from '../../types';
@@ -22,16 +22,11 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
     const [street, setStreet] = useState('');
     const [number, setNumber] = useState('');
     const [neighborhood, setNeighborhood] = useState('');
+    const [complement, setComplement] = useState('');
     const [keywords, setKeywords] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [location, setLocation] = useState<LatLng | null>(null);
-    const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-    useEffect(() => {
-        handleGetLocation();
-    }, []);
-    
     useEffect(() => {
         if (userProfile?.companyCity && !city) {
             setCity(userProfile.companyCity);
@@ -40,28 +35,6 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
             setState(userProfile.companyState);
         }
     }, [userProfile, city, state]);
-
-    const handleGetLocation = () => {
-        if (!navigator.geolocation) {
-            console.warn("Geolocalização não é suportada por este navegador.");
-            return;
-        }
-        setIsFetchingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setLocation({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                });
-                setIsFetchingLocation(false);
-            },
-            (err) => {
-                console.warn(`AVISO: Não foi possível obter a geolocalização (${err.message}). A análise prosseguirá sem coordenadas geográficas.`);
-                setLocation(null);
-                setIsFetchingLocation(false);
-            }
-        );
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,7 +47,7 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
 
         try {
             const keywordsArray = keywords.split(',').map(k => k.trim()).filter(Boolean);
-            const { responseText, groundingChunks } = await analyzeCompanyPresence(companyName, street, number, neighborhood, city, state, keywordsArray, location);
+            const { responseText, groundingChunks } = await analyzeCompanyPresence(companyName, street, number, complement, neighborhood, city, state, keywordsArray);
 
             const [tablePart, rest] = responseText.split(SEPARATOR_MAIN);
             const [summaryTablePart, restAfterSummary] = rest.split(SEPARATOR_SUMMARY);
@@ -116,6 +89,7 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
                 setState(data.uf);
                 setStreet(data.logradouro);
                 setNeighborhood(data.bairro);
+                setComplement(data.complemento || '');
             } catch (err) {
                 console.warn("Não foi possível buscar o CEP:", err);
             }
@@ -186,6 +160,15 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
                         style={{ paddingLeft: '12px' }}
                     />
                 </div>
+                <div className="input-group address-complement">
+                    <input
+                        type="text"
+                        placeholder="Complemento (sala, andar, etc.)"
+                        value={complement}
+                        onChange={(e) => setComplement(e.target.value)}
+                        style={{ paddingLeft: '12px' }}
+                    />
+                </div>
                 <div className="input-group address-city">
                     <input
                         type="text"
@@ -218,15 +201,6 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
                     onChange={(e) => setKeywords(e.target.value)}
                     required
                 />
-            </div>
-            
-            <div className="input-group">
-                 {isFetchingLocation && <div className="spinner"></div>}
-                 <input
-                    type="text"
-                    value={location ? `Geolocalização: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : 'Buscando geolocalização...'}
-                    readOnly
-                 />
             </div>
 
             {error && <p className="error-box">{error}</p>}

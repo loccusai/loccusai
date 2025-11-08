@@ -91,11 +91,6 @@ export interface Proposal {
 }
 
 
-export interface LatLng {
-    latitude: number;
-    longitude: number;
-}
-
 export interface ServiceLibraryItem {
   id: string;
   description: string;
@@ -126,6 +121,7 @@ export interface UserProfile {
   companyStreet?: string;
   companyNumber?: string;
   companyNeighborhood?: string;
+  companyComplement?: string;
   companyCity?: string;
   companyState?: string;
 

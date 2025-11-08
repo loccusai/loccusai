@@ -10,6 +10,7 @@ interface SettingsPageProps {
 const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProps) => {
     const [profileData, setProfileData] = useState<Partial<UserProfile>>(userProfile || {});
     const [saving, setSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     
     useEffect(() => {
         setProfileData(userProfile || {});
@@ -23,9 +24,11 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
+        setSaveSuccess(false); // Reset on new save
         await onUpdateProfile(profileData);
         setSaving(false);
-        alert('Perfil salvo com sucesso!');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000); // Revert after 3 seconds
     };
     
     const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>, prefix: 'company' | '') => {
@@ -39,7 +42,8 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
                 setProfileData(prev => ({
                     ...prev,
                     [`${prefix}${prefix ? 'C' : 'c'}ep`]: cep,
-                    [`${prefix}${prefix ? 'S' : 's'}treet`]: data.logouro,
+                    [`${prefix}${prefix ? 'S' : 's'}treet`]: data.logradouro,
+                    [`${prefix}${prefix ? 'C' : 'c'}omplement`]: data.complemento,
                     [`${prefix}${prefix ? 'N' : 'n'}eighborhood`]: data.bairro,
                     [`${prefix}${prefix ? 'C' : 'c'}ity`]: data.localidade,
                     [`${prefix}${prefix ? 'S' : 's'}tate`]: data.uf,
@@ -104,6 +108,7 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
                         <div className="input-group address-street"><input type="text" name="companyStreet" placeholder="Rua" value={profileData.companyStreet || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
                         <div className="input-group address-number"><input type="text" name="companyNumber" placeholder="Nº" value={profileData.companyNumber || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
                         <div className="input-group address-neighborhood"><input type="text" name="companyNeighborhood" placeholder="Bairro" value={profileData.companyNeighborhood || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
+                        <div className="input-group address-complement"><input type="text" name="companyComplement" placeholder="Complemento" value={profileData.companyComplement || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
                         <div className="input-group address-city"><input type="text" name="companyCity" placeholder="Cidade" value={profileData.companyCity || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
                         <div className="input-group address-state"><input type="text" name="companyState" placeholder="UF" value={profileData.companyState || ''} onChange={handleChange} maxLength={2} style={{paddingLeft: '12px'}}/></div>
                     </div>
@@ -123,8 +128,8 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
             </div>
             
              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                <button type="submit" disabled={saving}>
-                    {saving ? 'Salvando...' : 'Salvar Alterações'}
+                <button type="submit" disabled={saving || saveSuccess}>
+                    {saving ? 'Salvando...' : (saveSuccess ? 'Salvo com Sucesso!' : 'Salvar Alterações')}
                 </button>
             </div>
         </form>

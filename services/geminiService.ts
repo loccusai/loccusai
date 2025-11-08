@@ -1,13 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
-import type { LatLng } from '../types';
 
 const SEPARATOR_MAIN = "---ANALYSIS_BREAK---";
 const SEPARATOR_SUMMARY = "---SUMMARY_BREAK---";
 const SEPARATOR_RECOMMENDATION = "---RECOMMENDATION_BREAK---";
 const SEPARATOR_HASHTAG = "---HASHTAG_BREAK---";
 
-function buildPrompt(companyName: string, street: string, number: string, neighborhood: string, city: string, state: string, keywords: string[]): string {
-  const addressParts = [street, number, neighborhood].filter(Boolean);
+function buildPrompt(companyName: string, street: string, number: string, complement: string, neighborhood: string, city: string, state: string, keywords: string[]): string {
+  const addressParts = [street, number, complement, neighborhood].filter(Boolean);
   const mainAddress = addressParts.join(', ');
   const locationString = mainAddress ? `${mainAddress} - ${city}, ${state}` : `${city}, ${state}`;
   
@@ -66,7 +65,7 @@ function buildPrompt(companyName: string, street: string, number: string, neighb
     `;
 }
 
-export const analyzeCompanyPresence = async (companyName: string, street: string, number: string, neighborhood: string, city: string, state: string, keywords: string[], location: LatLng | null) => {
+export const analyzeCompanyPresence = async (companyName: string, street: string, number: string, complement: string, neighborhood: string, city: string, state: string, keywords: string[]) => {
   if (!process.env.API_KEY) {
     throw new Error("API key not found. Please set the API_KEY environment variable.");
   }
@@ -75,21 +74,10 @@ export const analyzeCompanyPresence = async (companyName: string, street: string
   const config: any = {
     tools: [{ googleSearch: {} }, { googleMaps: {} }],
   };
-
-  if (location) {
-    config.toolConfig = {
-      retrievalConfig: {
-        latLng: {
-          latitude: location.latitude,
-          longitude: location.longitude
-        }
-      }
-    };
-  }
   
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: buildPrompt(companyName, street, number, neighborhood, city, state, keywords),
+    contents: buildPrompt(companyName, street, number, complement, neighborhood, city, state, keywords),
     config: config,
   });
 
