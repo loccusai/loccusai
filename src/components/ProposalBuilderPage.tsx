@@ -38,6 +38,17 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
         );
     };
 
+    const handlePriceChange = (id: string, value: string) => {
+        const digits = value.replace(/\D/g, '');
+        if (digits === '') {
+            handleServiceChange(id, 'price', 0);
+            return;
+        }
+        const numberValue = parseInt(digits, 10);
+        const price = numberValue / 100;
+        handleServiceChange(id, 'price', price);
+    };
+
     const handleRemoveService = (id:string) => {
         setServices(prev => prev.filter(s => s.id !== id));
     };
@@ -188,10 +199,10 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
                                 <div className="service-item-side">
                                     <div className="input-group service-price-input">
                                          <input
-                                            type="number"
-                                            placeholder="Preço (R$)"
-                                            value={service.price}
-                                            onChange={(e) => handleServiceChange(service.id, 'price', parseFloat(e.target.value) || 0)}
+                                            type="text"
+                                            placeholder="R$ 0,00"
+                                            value={service.price > 0 ? formatCurrency(service.price) : ''}
+                                            onChange={(e) => handlePriceChange(service.id, e.target.value)}
                                         />
                                     </div>
                                     <button className="remove-service-btn" onClick={() => handleRemoveService(service.id)}>

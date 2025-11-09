@@ -105,15 +105,31 @@ export default function App() {
                     .from('analyses')
                     .select('*')
                     .eq('user_id', session.user.id);
-                if (historyError) console.error("Erro ao buscar histórico do Supabase:", historyError);
-                else setHistory(remoteHistory as AnalysisHistoryItem[]);
+                if (historyError) {
+                    console.error("Erro ao buscar histórico do Supabase:", historyError);
+                } else if (remoteHistory) {
+                    const parsedHistory = remoteHistory.map(item => ({
+                        ...item,
+                        date: new Date(item.date),
+                    }));
+                    setHistory(parsedHistory as AnalysisHistoryItem[]);
+                }
+
 
                 const { data: remoteProposals, error: proposalsError } = await supabase
                     .from('proposals')
                     .select('*')
                     .eq('user_id', session.user.id);
-                if (proposalsError) console.error("Erro ao buscar propostas do Supabase:", proposalsError);
-                else setProposals(remoteProposals as Proposal[]);
+                if (proposalsError) {
+                    console.error("Erro ao buscar propostas do Supabase:", proposalsError);
+                } else if (remoteProposals) {
+                    const parsedProposals = remoteProposals.map(item => ({
+                        ...item,
+                        createdAt: new Date(item.createdAt),
+                        expiresAt: item.expiresAt ? new Date(item.expiresAt) : undefined,
+                    }));
+                    setProposals(parsedProposals as Proposal[]);
+                }
             };
             syncData();
         }
@@ -128,21 +144,24 @@ export default function App() {
         }
     };
 
-    const handleResult = (result: AnalysisResult, companyName: string) => {
+    const handleResult = async (result: AnalysisResult, companyName: string) => {
         const newHistoryItem: AnalysisHistoryItem = {
             ...result,
             id: `analysis_${Date.now()}`,
             companyName,
             date: new Date(),
+            // Sanitize groundingChunks to ensure it is a plain JSON-serializable object
+            groundingChunks: result.groundingChunks ? JSON.parse(JSON.stringify(result.groundingChunks)) : undefined
         };
         
         const updatedHistory = [newHistoryItem, ...history];
         setHistory(updatedHistory);
 
         if (supabase && session?.user) {
-            supabase.from('analyses').insert({ ...newHistoryItem, user_id: session.user.id }).then(({ error }) => {
-                if(error) console.error("Erro ao salvar análise no Supabase:", error);
-            });
+            const { error } = await supabase.from('analyses').insert({ ...newHistoryItem, user_id: session.user.id });
+            if(error) {
+                console.error("Erro ao salvar análise no Supabase:", error.message, error);
+            }
         }
         
         setCurrentResult(newHistoryItem);

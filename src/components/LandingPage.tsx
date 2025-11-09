@@ -6,7 +6,7 @@ const testimonials = [
         quote: "Eu passava horas montando relatórios de concorrentes. Com o Loccus AI, faço em minutos o que antes levava um dia inteiro. Meus clientes ficam impressionados e eu ganho mais tempo para focar em estratégia.",
         author: "João P.",
         title: "Gestor de Tráfego",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
+        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
     },
     {
         quote: "Levar um relatório da Loccus AI para la reunião de prospecção muda o jogo. O cliente vê na hora os pontos fracos e onde podemos atuar. Fechei 3 novos contratos no último mês usando essa tática.",
@@ -39,7 +39,14 @@ const LandingPage = ({ onStart }: LandingPageProps) => {
     return (
     <div className="landing-page">
         <header className="landing-header">
-            <div className="landing-logo"><svg className="logo-image" viewBox="0 0 24 24" fill="var(--primary-color)"><path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22S19 14.25 19 9C19 5.13 15.87 2 12 2M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9A2.5 2.5 0 0 1 12 11.5Z"></path></svg><span className="landing-logo-text">Loccus AI</span></div>
+            <div className="landing-logo">
+                <svg className="logo-image" viewBox="0 0 142 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 0C8.27 0 2 6.27 2 14C2 22.25 16 32 16 32S30 22.25 30 14C30 6.27 23.73 0 16 0ZM16 19C13.24 19 11 16.76 11 14C11 11.24 13.24 9 16 9C18.76 9 21 11.24 21 14C21 16.76 18.76 19 16 19Z" fill="#00A9FF"/>
+                    <path d="M16 11.5L17.16 12.84L18.5 14L17.16 15.16L16 16.5L14.84 15.16L13.5 14L14.84 12.84L16 11.5Z" fill="white"/>
+                    <text x="38" y="23" fontFamily="Inter, sans-serif" fontSize="20" fontWeight="700" fill="currentColor">Loccus</text>
+                    <text x="110" y="23" fontFamily="Inter, sans-serif" fontSize="20" fontWeight="400" fill="currentColor">AI</text>
+                </svg>
+            </div>
         </header>
         <section className="hero">
             <div className="hero-badge">PARA AGÊNCIAS E FREELANCERS</div>
