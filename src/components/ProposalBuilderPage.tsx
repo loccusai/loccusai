@@ -273,7 +273,19 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
                             </div>
                         </div>
                         <div className="pdf-preview-body">
-                             <iframe src={pdfUrl} title="Pré-visualização de PDF"></iframe>
+                             <object data={pdfUrl} type="application/pdf" title="Pré-visualização de PDF">
+                                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--icon-color)' }}>
+                                    <h3>Oops! Não foi possível exibir o PDF.</h3>
+                                    <p style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>Seu navegador pode não ser compatível com a pré-visualização. Por favor, use o botão abaixo para baixar o arquivo.</p>
+                                    <a 
+                                        href={pdfUrl} 
+                                        download={`proposta_${analysis.companyName.replace(/\s+/g, '_')}.pdf`}
+                                        className="pdf-download-btn"
+                                    >
+                                        Baixar PDF
+                                    </a>
+                                </div>
+                            </object>
                         </div>
                     </div>
                 </div>
