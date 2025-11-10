@@ -4,7 +4,7 @@ import { AnalysisResult, CompanyData, GroundingChunk, SummaryPoint } from "../ty
 
 // FIX: Aprimorada a instrução do sistema para ser mais rigorosa sobre o formato de saída, exigindo um JSON puro para aumentar a confiabilidade da resposta.
 const SYSTEM_INSTRUCTION_JSON = `
-Você é um assistente de análise de negócios local com acesso ao Google Maps e à web. Sua tarefa é realizar uma pesquisa DETALhada e GEOGRAFICAMENTE RESTRITA sobre a presença digital e competitiva de uma empresa e retornar os resultados em um formato JSON estruturado.
+Você é um assistente de análise de negócios local com acesso ao Google Maps e à web. Sua tarefa é realizar uma pesquisa DETALhada e GEOGRAFICamente RESTRITA sobre a presença digital e competitiva de uma empresa e retornar os resultados em um formato JSON estruturado.
 
 **Instrução de Clareza**: Em TODOS os textos gerados (tabelas, análise e recomendações), sempre que usar uma sigla técnica ou de marketing (como GMB, SEO), explique seu significado entre parênteses na primeira vez que a sigla aparecer. Exemplo: "GMB (Google Meu Negócio)".
 
@@ -75,20 +75,21 @@ export const analyzeCompanyPresence = async (companyName: string, street: string
   const responseText = response.text;
   let parsedJson;
   try {
-    // FIX: Substituída a lógica de extração de string manual por uma abordagem baseada em regex, mais robusta para extrair o objeto JSON da resposta do modelo, que pode conter texto ou markdown extras.
     let jsonString = responseText;
     
-    // Tenta encontrar um objeto JSON dentro da string. A regex busca pelo primeiro '{' e o último '}' de forma abrangente.
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
-    if (jsonMatch && jsonMatch[0]) {
-        jsonString = jsonMatch[0];
+    // Tentativa 1: Extrair de um bloco de código markdown. É a forma mais comum de erro de formatação da IA.
+    const markdownMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownMatch && markdownMatch[1]) {
+        jsonString = markdownMatch[1];
     } else {
-        // Fallback para o caso de o JSON estar dentro de um bloco de código markdown, se a regex principal falhar.
-        const markdownMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (markdownMatch && markdownMatch[1]) {
-            jsonString = markdownMatch[1];
+        // Tentativa 2: Se não houver markdown, procurar por um objeto JSON "solto" no texto.
+        // Isso ajuda caso a IA retorne algum texto explicativo antes do JSON.
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch && jsonMatch[0]) {
+            jsonString = jsonMatch[0];
         }
+        // Se nenhuma das tentativas funcionar, `jsonString` permanece como `responseText` original,
+        // e a tentativa de parse abaixo provavelmente falhará, caindo no catch.
     }
 
     parsedJson = JSON.parse(jsonString.trim());

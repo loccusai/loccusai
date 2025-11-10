@@ -119,23 +119,36 @@ export default function App() {
                             status: 'synced',
                         };
                         
-                        const dbPayload = newHistoryItem;
-                        const payload = { ...dbPayload, user_id: session.user.id };
+                        const { tableData, summaryTable, groundingChunks: gc, status, ...rest } = newHistoryItem;
+                        const payload = { 
+                            ...rest, 
+                            table_data: tableData,
+                            summary_table: summaryTable,
+                            grounding_chunks: gc,
+                            user_id: session.user.id 
+                        };
 
                         const { data, error } = await supabase.from('analyses').insert(payload).select().single();
                         if (error) throw error;
                         
                         setHistory(prev => prev.map(item => {
                             if (item.id === tempId) {
-                                return { ...data, date: new Date(data.date), groundingChunks: newHistoryItem.groundingChunks } as AnalysisHistoryItem;
+                                const { table_data, summary_table, grounding_chunks, ...restOfData } = data;
+                                return {
+                                    ...restOfData,
+                                    date: new Date(data.date),
+                                    tableData: table_data || [],
+                                    summaryTable: summary_table || [],
+                                    groundingChunks: grounding_chunks || [],
+                                } as AnalysisHistoryItem;
                             }
                             return item;
                         }));
                         break;
                     }
                     case 'UPDATE_ANALYSIS': {
-                        const { id, ...updateData } = action.payload;
-                        const { error } = await supabase.from('analyses').update(updateData).eq('id', id);
+                        const { id, companyName } = action.payload;
+                        const { error } = await supabase.from('analyses').update({ companyName }).eq('id', id);
                         if (error) throw error;
                         break;
                     }
@@ -173,10 +186,16 @@ export default function App() {
                 if (historyError) {
                     console.error("Erro ao buscar histórico do Supabase:", historyError);
                 } else if (remoteHistory) {
-                    const parsedHistory = remoteHistory.map(item => ({
-                        ...item,
-                        date: new Date(item.date),
-                    }));
+                    const parsedHistory = remoteHistory.map(item => {
+                        const { table_data, summary_table, grounding_chunks, ...rest } = item;
+                        return {
+                            ...rest,
+                            tableData: table_data || [],
+                            summaryTable: summary_table || [],
+                            groundingChunks: grounding_chunks || [],
+                            date: new Date(item.date),
+                        };
+                    });
                     setHistory(parsedHistory as AnalysisHistoryItem[]);
                 }
 
@@ -210,26 +229,47 @@ export default function App() {
     };
 
     const handleResult = async (result: AnalysisResult, companyName: string) => {
+        const tempId = `analysis_${Date.now()}`;
         const newHistoryItem: AnalysisHistoryItem = {
             ...result,
-            id: `analysis_${Date.now()}`,
+            id: tempId,
             companyName,
             date: new Date(),
             groundingChunks: result.groundingChunks ? JSON.parse(JSON.stringify(result.groundingChunks)) : undefined
         };
         
-        const updatedHistory = [newHistoryItem, ...history];
-        setHistory(updatedHistory);
+        setHistory(prev => [newHistoryItem, ...prev]);
 
         if (supabase && session?.user) {
-            const { id, ...insertData } = newHistoryItem;
-            const { error } = await supabase.from('analyses').insert({ ...insertData, user_id: session.user.id });
-            if(error) {
+            const { id, tableData, summaryTable, groundingChunks, status, ...rest } = newHistoryItem;
+            const payload = {
+                ...rest,
+                table_data: tableData,
+                summary_table: summaryTable,
+                grounding_chunks: groundingChunks,
+                user_id: session.user.id
+            };
+
+            const { data, error } = await supabase.from('analyses').insert(payload).select().single();
+            if (error) {
                 console.error("Erro ao salvar análise no Supabase:", error.message, error);
+                setCurrentResult(newHistoryItem);
+            } else if (data) {
+                const { table_data, summary_table, grounding_chunks, ...restOfData } = data;
+                const savedItem: AnalysisHistoryItem = {
+                    ...restOfData,
+                    tableData: table_data || [],
+                    summaryTable: summary_table || [],
+                    groundingChunks: grounding_chunks || [],
+                    date: new Date(data.date),
+                };
+                setHistory(prev => prev.map(item => item.id === tempId ? savedItem : item));
+                setCurrentResult(savedItem);
             }
+        } else {
+            setCurrentResult(newHistoryItem);
         }
         
-        setCurrentResult(newHistoryItem);
         setPage('result');
     };
 
@@ -284,13 +324,12 @@ export default function App() {
         setHistory(updatedHistory);
 
         if (!isOnline) {
-             setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPDATE_ANALYSIS' && a.payload.id === itemToUpdate.id)), { type: 'UPDATE_ANALYSIS', payload: itemToUpdate, timestamp: Date.now() }]);
+             setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPDATE_ANALYSIS' && a.payload.id === itemToUpdate.id)), { type: 'UPDATE_ANALYSIS', payload: { id: itemToUpdate.id, companyName: itemToUpdate.companyName }, timestamp: Date.now() }]);
             return;
         }
 
         if (supabase && session?.user) {
-            const { id, groundingChunks, ...updateData } = itemToUpdate;
-            const { error } = await supabase.from('analyses').update(updateData).eq('id', id);
+            const { error } = await supabase.from('analyses').update({ companyName: itemToUpdate.companyName }).eq('id', itemToUpdate.id);
             if (error) console.error("Erro ao atualizar item do histórico no Supabase:", error);
         }
     };
