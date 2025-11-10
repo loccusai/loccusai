@@ -24,6 +24,78 @@ interface SyncAction {
 }
 
 
+// --- Funções de Mapeamento ---
+function proposalToSnakeCase(proposal: Proposal): any {
+  const {
+    analysisId,
+    clientName,
+    createdAt,
+    expiresAt,
+    totalOneTimeValue,
+    totalRecurringValue,
+    analysisResult,
+    clientEmail,
+    contactName,
+    contactPhone,
+    termsAndConditions,
+    ...rest
+  } = proposal;
+
+  const { tableData, summaryTable, analysis, recommendations, hashtags, groundingChunks } = analysisResult;
+  const cleanAnalysisResult = {
+    tableData, summaryTable, analysis, recommendations, hashtags,
+    groundingChunks: groundingChunks || null,
+  };
+
+  return {
+    ...rest,
+    analysis_id: analysisId,
+    client_name: clientName,
+    created_at: createdAt,
+    expires_at: expiresAt,
+    total_one_time_value: totalOneTimeValue,
+    total_recurring_value: totalRecurringValue,
+    analysis_result: cleanAnalysisResult,
+    client_email: clientEmail,
+    contact_name: contactName,
+    contact_phone: contactPhone,
+    terms_and_conditions: termsAndConditions,
+  };
+}
+
+function proposalFromSnakeCase(item: any): Proposal {
+  const {
+    analysis_id,
+    client_name,
+    created_at,
+    expires_at,
+    total_one_time_value,
+    total_recurring_value,
+    analysis_result,
+    client_email,
+    contact_name,
+    contact_phone,
+    terms_and_conditions,
+    ...rest
+  } = item;
+  
+  return {
+    ...rest,
+    analysisId: analysis_id,
+    clientName: client_name,
+    createdAt: new Date(created_at),
+    expiresAt: expires_at ? new Date(expires_at) : undefined,
+    totalOneTimeValue: total_one_time_value,
+    totalRecurringValue: total_recurring_value,
+    analysisResult: analysis_result,
+    clientEmail: client_email,
+    contactName: contact_name,
+    contactPhone: contact_phone,
+    termsAndConditions: terms_and_conditions,
+  } as Proposal;
+}
+
+
 // --- Componente Principal ---
 export default function App() {
     type Page = 'landing' | 'auth' | 'dashboard' | 'app' | 'result' | 'profile' | 'settings' | 'proposalBuilder' | 'proposalsList' | 'serviceLibrary';
@@ -202,21 +274,13 @@ export default function App() {
 
                 const { data: remoteProposals, error: proposalsError } = await supabase
                     .from('proposals')
-                    .select('*, analysis_result')
+                    .select('*')
                     .eq('user_id', session.user.id);
                 if (proposalsError) {
                     console.error("Erro ao buscar propostas do Supabase:", proposalsError);
                 } else if (remoteProposals) {
-                    const parsedProposals = remoteProposals.map(item => {
-                         const { analysis_result, ...rest } = item;
-                        return {
-                            ...rest,
-                            analysisResult: analysis_result,
-                            createdAt: new Date(item.created_at),
-                            expiresAt: item.expires_at ? new Date(item.expires_at) : undefined,
-                        }
-                    });
-                    setProposals(parsedProposals as Proposal[]);
+                    const parsedProposals = remoteProposals.map(proposalFromSnakeCase);
+                    setProposals(parsedProposals);
                 }
             };
             syncData();
@@ -308,41 +372,15 @@ export default function App() {
             updatedProposals = [proposal, ...proposals];
         }
         setProposals(updatedProposals);
-        
+
         if (supabase && session?.user) {
-            const { analysisResult, ...restOfProposal } = proposal;
-
-            // Extrai apenas os campos de AnalysisResult, descartando os campos extras de AnalysisHistoryItem
-            // para garantir a compatibilidade com a coluna jsonb no Supabase.
-            const { 
-                tableData, 
-                summaryTable, 
-                analysis, 
-                recommendations, 
-                hashtags, 
-                groundingChunks 
-            } = analysisResult;
-            
-            const cleanAnalysisResult = {
-                tableData,
-                summaryTable,
-                analysis,
-                recommendations,
-                hashtags,
-                groundingChunks: groundingChunks || null,
-            };
-
-            // Monta o payload para o Supabase, mapeando explicitamente o campo analysis_result.
-            // O Supabase client cuidará da conversão de camelCase para snake_case para os outros campos.
-            const payload = { 
-                ...restOfProposal, 
-                analysis_result: cleanAnalysisResult,
-                user_id: session.user.id 
+            const payload = {
+                ...proposalToSnakeCase(proposal),
+                user_id: session.user.id,
             };
             
             const { error } = await supabase.from('proposals').upsert(payload);
             if (error) {
-                // Log do erro melhorado para exibir a mensagem real em vez de [object Object]
                 console.error("Erro ao salvar proposta no Supabase:", error.message, error);
             }
         }

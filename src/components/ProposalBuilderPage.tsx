@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { AnalysisHistoryItem, Proposal, ProposalServiceItem, ServiceLibraryItem, UserProfile } from '../../types';
+import { AnalysisHistoryItem, Proposal, ProposalServiceItem, ServiceLibraryItem, UserProfile, AnalysisResult } from '../../types';
 
 interface ProposalBuilderPageProps {
     onBack: () => void;
@@ -18,6 +18,8 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
     const [terms, setTerms] = useState('');
     const [showPdfPreview, setShowPdfPreview] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState('');
     
     const addServiceFromLibrary = (item: ServiceLibraryItem) => {
         const newService: ProposalServiceItem = { ...item, id: `service_${Date.now()}_${Math.random()}` };
@@ -68,6 +70,45 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
     
     const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
+    const createProposalObject = (): Proposal => {
+        const { tableData, summaryTable, analysis: analysisText, recommendations, hashtags, groundingChunks } = analysis;
+        const cleanAnalysisResult: AnalysisResult = { tableData, summaryTable, analysis: analysisText, recommendations, hashtags, groundingChunks };
+
+        return {
+            id: `prop_${Date.now()}`,
+            analysisId: analysis.id,
+            clientName: analysis.companyName,
+            status: 'Draft',
+            createdAt: new Date(),
+            services,
+            totalOneTimeValue: totalOneTime,
+            totalRecurringValue: totalRecurring,
+            analysisResult: cleanAnalysisResult,
+            clientEmail: clientEmail,
+            contactName: contactName,
+            contactPhone: contactPhone,
+            termsAndConditions: terms,
+        };
+    };
+    
+    const handleSave = () => {
+        const proposal = createProposalObject();
+        onSaveProposal(proposal);
+        
+        setIsSaving(true);
+        setSaveMessage('Orçamento salvo!');
+        setTimeout(() => {
+            setIsSaving(false);
+            setSaveMessage('');
+        }, 2500);
+    };
+
+    const handleSaveAndPreview = () => {
+        const newProposal = createProposalObject();
+        onSaveProposal(newProposal);
+        generateProposalPDF('bloburl');
     };
     
     const generateProposalPDF = async (outputType: 'bloburl' | 'save' = 'bloburl') => {
@@ -147,26 +188,6 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
              setPdfUrl(url);
              setShowPdfPreview(true);
         }
-    };
-    
-    const handleSaveAndPreview = () => {
-        const newProposal: Proposal = {
-            id: `prop_${Date.now()}`,
-            analysisId: analysis.id,
-            clientName: analysis.companyName,
-            status: 'Draft',
-            createdAt: new Date(),
-            services,
-            totalOneTimeValue: totalOneTime,
-            totalRecurringValue: totalRecurring,
-            analysisResult: analysis,
-            clientEmail: clientEmail,
-            contactName: contactName,
-            contactPhone: contactPhone,
-            termsAndConditions: terms,
-        };
-        onSaveProposal(newProposal);
-        generateProposalPDF('bloburl');
     };
 
     return (
@@ -294,7 +315,16 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
                  </div>
 
                 <div className="proposal-actions">
-                     <button className="back-button btn-secondary" onClick={onBack}>Cancelar</button>
+                     <button className="proposal-actions .btn-secondary" onClick={onBack}>Cancelar</button>
+                     <button 
+                        type="button" 
+                        className="proposal-actions .btn-secondary"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        style={{minWidth: '150px'}}
+                     >
+                        {isSaving ? 'Salvando...' : (saveMessage || 'Salvar Orçamento')}
+                    </button>
                     <button onClick={handleSaveAndPreview}>Salvar e Pré-visualizar PDF</button>
                 </div>
             </main>
