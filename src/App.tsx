@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { AnalysisHistoryItem, AnalysisResult, Proposal, ProposalServiceItem, ProposalStatus, ServiceLibraryItem, UserProfile } from '../types';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { analyzeCompanyPresence } from '../../services/geminiService';
 import { parseMarkdownTable } from './utils/parsers';
+import supabase from './supabaseClient'; // Importa a instância centralizada
 
 import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
@@ -15,20 +17,12 @@ import ProposalBuilderPage from './components/ProposalBuilderPage';
 import ProposalsListPage from './components/ProposalsListPage';
 import ServiceLibraryPage from './components/ServiceLibraryPage';
 
-// --- SUPABASE CLIENT SETUP (COM FALLBACK) ---
-let supabase: SupabaseClient | null = null;
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-if (supabaseUrl && !supabaseUrl.includes('SEU_SUPABASE_URL_AQUI') && supabaseAnonKey && !supabaseAnonKey.includes('SEU_SUPABASE_ANON_KEY_AQUI')) {
-    try {
-        supabase = createClient(supabaseUrl, supabaseAnonKey);
-    } catch (error) {
-        console.error("Erro de inicialização do Supabase:", error instanceof Error ? error.message : "Erro desconhecido.");
-    }
-} else {
-    console.warn("Supabase não configurado. A aplicação usará o Local Storage como fallback.");
+interface SyncAction {
+  type: 'CREATE_ANALYSIS' | 'UPDATE_ANALYSIS' | 'DELETE_ANALYSIS';
+  payload: any;
+  timestamp: number;
 }
+
 
 // --- Componente Principal ---
 export default function App() {
@@ -37,10 +31,12 @@ export default function App() {
     const [currentResult, setCurrentResult] = useState<AnalysisHistoryItem | null>(null);
     const [history, setHistory] = useLocalStorage<AnalysisHistoryItem[]>('analysisHistory', []);
     const [proposals, setProposals] = useLocalStorage<Proposal[]>('proposals', []);
+    const [syncQueue, setSyncQueue] = useLocalStorage<SyncAction[]>('syncQueue', []);
     const [theme, setTheme] = useLocalStorage<string>('theme', 'light');
     const [session, setSession] = useState<Session | null>(null);
     const [userProfile, setUserProfile] = useLocalStorage<UserProfile | null>('userProfile', null);
     const [analysisForProposal, setAnalysisForProposal] = useState<AnalysisHistoryItem | null>(null);
+    const isOnline = useOnlineStatus();
     
     useEffect(() => {
         document.body.setAttribute('data-theme', theme);
@@ -98,8 +94,77 @@ export default function App() {
         return () => subscription.unsubscribe();
     }, []);
     
+    const processSyncQueue = async () => {
+        if (!isOnline || syncQueue.length === 0 || !supabase || !session?.user) return;
+
+        console.log("Processando fila de sincronização...", syncQueue);
+        const queue = [...syncQueue];
+        let processedTimestamps = new Set<number>();
+
+        for (const action of queue) {
+            try {
+                switch (action.type) {
+                    case 'CREATE_ANALYSIS': {
+                        const { formData, tempId } = action.payload;
+                        const { analysisResult, groundingChunks } = await analyzeCompanyPresence(
+                            formData.companyName, formData.street, formData.number, formData.complement,
+                            formData.neighborhood, formData.city, formData.state, formData.keywords.split(',').map((k:string) => k.trim())
+                        );
+                        
+                        const newHistoryItem: Omit<AnalysisHistoryItem, 'id'> = {
+                            ...analysisResult,
+                            companyName: formData.companyName,
+                            date: new Date(),
+                            groundingChunks: JSON.parse(JSON.stringify(groundingChunks || [])),
+                            status: 'synced',
+                        };
+                        
+                        const dbPayload = newHistoryItem;
+                        const payload = { ...dbPayload, user_id: session.user.id };
+
+                        const { data, error } = await supabase.from('analyses').insert(payload).select().single();
+                        if (error) throw error;
+                        
+                        setHistory(prev => prev.map(item => {
+                            if (item.id === tempId) {
+                                return { ...data, date: new Date(data.date), groundingChunks: newHistoryItem.groundingChunks } as AnalysisHistoryItem;
+                            }
+                            return item;
+                        }));
+                        break;
+                    }
+                    case 'UPDATE_ANALYSIS': {
+                        const { id, ...updateData } = action.payload;
+                        const { error } = await supabase.from('analyses').update(updateData).eq('id', id);
+                        if (error) throw error;
+                        break;
+                    }
+                    case 'DELETE_ANALYSIS': {
+                        const { error } = await supabase.from('analyses').delete().eq('id', action.payload.id);
+                        if (error) throw error;
+                        break;
+                    }
+                }
+                processedTimestamps.add(action.timestamp);
+            } catch (error) {
+                console.error('Falha ao processar ação da fila. Tentará novamente mais tarde:', action, error);
+                break; 
+            }
+        }
+
+        if (processedTimestamps.size > 0) {
+            setSyncQueue(currentQueue => currentQueue.filter(a => !processedTimestamps.has(a.timestamp)));
+        }
+    };
+    
     useEffect(() => {
-        if (supabase && session?.user && userProfile) {
+        if (isOnline) {
+            processSyncQueue();
+        }
+    }, [isOnline, session]);
+
+    useEffect(() => {
+        if (supabase && session?.user && isOnline) {
             const syncData = async () => {
                 const { data: remoteHistory, error: historyError } = await supabase
                     .from('analyses')
@@ -133,7 +198,7 @@ export default function App() {
             };
             syncData();
         }
-    }, [session, userProfile]);
+    }, [session, isOnline]);
 
     const handleStart = () => {
         sessionStorage.setItem('hasSeenLanding', 'true');
@@ -150,7 +215,6 @@ export default function App() {
             id: `analysis_${Date.now()}`,
             companyName,
             date: new Date(),
-            // Sanitize groundingChunks to ensure it is a plain JSON-serializable object
             groundingChunks: result.groundingChunks ? JSON.parse(JSON.stringify(result.groundingChunks)) : undefined
         };
         
@@ -158,7 +222,8 @@ export default function App() {
         setHistory(updatedHistory);
 
         if (supabase && session?.user) {
-            const { error } = await supabase.from('analyses').insert({ ...newHistoryItem, user_id: session.user.id });
+            const { id, ...insertData } = newHistoryItem;
+            const { error } = await supabase.from('analyses').insert({ ...insertData, user_id: session.user.id });
             if(error) {
                 console.error("Erro ao salvar análise no Supabase:", error.message, error);
             }
@@ -217,18 +282,54 @@ export default function App() {
     const handleUpdateHistoryItem = async (itemToUpdate: AnalysisHistoryItem) => {
         const updatedHistory = history.map(item => item.id === itemToUpdate.id ? itemToUpdate : item);
         setHistory(updatedHistory);
+
+        if (!isOnline) {
+             setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPDATE_ANALYSIS' && a.payload.id === itemToUpdate.id)), { type: 'UPDATE_ANALYSIS', payload: itemToUpdate, timestamp: Date.now() }]);
+            return;
+        }
+
         if (supabase && session?.user) {
-            const { error } = await supabase.from('analyses').update(itemToUpdate).eq('id', itemToUpdate.id);
+            const { id, groundingChunks, ...updateData } = itemToUpdate;
+            const { error } = await supabase.from('analyses').update(updateData).eq('id', id);
             if (error) console.error("Erro ao atualizar item do histórico no Supabase:", error);
         }
     };
     
     const handleDeleteHistoryItem = async (id: string) => {
-        setHistory(history.filter(item => item.id !== id));
-        if (supabase && session?.user) {
+        if (id.startsWith('pending_')) {
+            setSyncQueue(prev => prev.filter(action => 
+                !(action.type === 'CREATE_ANALYSIS' && action.payload.tempId === id)
+            ));
+        } else if (!isOnline) {
+            setSyncQueue(prev => [...prev, { type: 'DELETE_ANALYSIS', payload: { id }, timestamp: Date.now() }]);
+        } else if (supabase && session?.user) {
             const { error } = await supabase.from('analyses').delete().eq('id', id);
             if (error) console.error("Erro ao deletar item do histórico do Supabase:", error);
         }
+
+        setHistory(history.filter(item => item.id !== id));
+    };
+    
+    const handleQueueAnalysis = (formData: Record<string, string>) => {
+        const tempId = `pending_${Date.now()}`;
+        const placeholderItem: AnalysisHistoryItem = {
+            id: tempId,
+            companyName: formData.companyName,
+            date: new Date(),
+            tableData: [],
+            summaryTable: [],
+            analysis: 'Análise pendente de sincronização.',
+            recommendations: 'Aguardando conexão com a internet para gerar.',
+            hashtags: '',
+            status: 'pending'
+        };
+        setHistory(prev => [placeholderItem, ...prev]);
+        setSyncQueue(prev => [...prev, {
+            type: 'CREATE_ANALYSIS',
+            payload: { formData, tempId },
+            timestamp: Date.now()
+        }]);
+        setPage('dashboard');
     };
     
     const handleUpdateServiceLibrary = async (services: ServiceLibraryItem[]) => {
@@ -265,6 +366,7 @@ export default function App() {
                 return <AppForm 
                             onBack={() => setPage('dashboard')} 
                             onResult={handleResult} 
+                            onQueueAnalysis={handleQueueAnalysis}
                             userProfile={userProfile}
                        />;
             case 'result':

@@ -40,6 +40,21 @@ const ServiceLibraryPage = ({ onBack, services, onUpdateServices }: ServiceLibra
         alert('Biblioteca de serviços salva!');
     };
     
+    const formatCurrency = (value: number) => {
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
+    const handlePriceChange = (id: string, value: string) => {
+        const digits = value.replace(/\D/g, '');
+        if (digits === '') {
+            handleServiceChange(id, 'price', 0);
+            return;
+        }
+        const numberValue = parseInt(digits, 10);
+        const price = numberValue / 100;
+        handleServiceChange(id, 'price', price);
+    };
+
     return (
         <>
             <header className="dashboard-header">
@@ -67,10 +82,10 @@ const ServiceLibraryPage = ({ onBack, services, onUpdateServices }: ServiceLibra
                                 <div className="service-item-side">
                                     <div className="input-group service-price-input">
                                          <input
-                                            type="number"
-                                            placeholder="Preço (R$)"
-                                            value={service.price}
-                                            onChange={(e) => handleServiceChange(service.id, 'price', parseFloat(e.target.value) || 0)}
+                                            type="text"
+                                            placeholder="R$ 0,00"
+                                            value={service.price > 0 ? formatCurrency(service.price) : ''}
+                                            onChange={(e) => handlePriceChange(service.id, e.target.value)}
                                         />
                                     </div>
                                     <select

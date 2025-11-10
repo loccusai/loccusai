@@ -13,6 +13,8 @@ interface ProposalBuilderPageProps {
 const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: ProposalBuilderPageProps) => {
     const [services, setServices] = useState<ProposalServiceItem[]>([]);
     const [clientEmail, setClientEmail] = useState('');
+    const [contactName, setContactName] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
     const [terms, setTerms] = useState('');
     const [showPdfPreview, setShowPdfPreview] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
@@ -58,9 +60,9 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
     
      useEffect(() => {
         if (totalRecurring > 0) {
-            setTerms(userProfile?.proposalRecurringTemplate || 'Termos para serviços recorrentes...');
+            setTerms(userProfile?.proposalRecurringTemplate ?? 'Termos para serviços recorrentes...');
         } else {
-            setTerms(userProfile?.proposalOneTimeTemplate || 'Termos para serviço único...');
+            setTerms(userProfile?.proposalOneTimeTemplate ?? 'Termos para serviço único...');
         }
     }, [totalOneTime, totalRecurring, userProfile]);
     
@@ -89,8 +91,20 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
         
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 62);
-        doc.text(`Cliente: ${analysis.companyName}`, 14, 68);
+        
+        let currentY = 62;
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, currentY);
+        currentY += 6;
+        doc.text(`Cliente: ${analysis.companyName}`, 14, currentY);
+        
+        if (contactName) {
+            currentY += 6;
+            doc.text(`A/C: ${contactName}`, 14, currentY);
+        }
+        if (contactPhone) {
+            currentY += 6;
+            doc.text(`Telefone: ${contactPhone}`, 14, currentY);
+        }
         
         const tableBody = services.map(s => [
             s.description,
@@ -99,7 +113,7 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
         ]);
 
         autoTable(doc, {
-            startY: 80,
+            startY: currentY + 8,
             head: [['Descrição do Serviço', 'Tipo', 'Valor']],
             body: tableBody,
             theme: 'striped',
@@ -147,6 +161,8 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
             totalRecurringValue: totalRecurring,
             analysisResult: analysis,
             clientEmail: clientEmail,
+            contactName: contactName,
+            contactPhone: contactPhone,
             termsAndConditions: terms,
         };
         onSaveProposal(newProposal);
@@ -165,6 +181,27 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
             <main>
                 <div className="card">
                      <p className="form-description">Orçamento para: <strong>{analysis.companyName}</strong></p>
+
+                     <div className="address-fields-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '1.5rem', gap: '1rem' }}>
+                        <div className="input-group" style={{ gridColumn: 'span 1', marginBottom: 0 }}>
+                            <input
+                                type="text"
+                                placeholder="Nome do contato (opcional)"
+                                value={contactName}
+                                onChange={(e) => setContactName(e.target.value)}
+                                style={{ paddingLeft: '12px' }}
+                            />
+                        </div>
+                        <div className="input-group" style={{ gridColumn: 'span 1', marginBottom: 0 }}>
+                            <input
+                                type="tel"
+                                placeholder="Telefone do contato (opcional)"
+                                value={contactPhone}
+                                onChange={(e) => setContactPhone(e.target.value)}
+                                style={{ paddingLeft: '12px' }}
+                            />
+                        </div>
+                    </div>
                      
                     {userProfile?.serviceLibrary && userProfile.serviceLibrary.length > 0 && (
                         <div className="card-header-with-action" style={{ paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>

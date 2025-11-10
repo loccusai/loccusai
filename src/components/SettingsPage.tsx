@@ -116,6 +116,9 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
 
                  <div className="settings-section">
                     <h3>Modelos de Proposta</h3>
+                    <p className="form-description" style={{fontSize: '0.9rem', marginBottom: '1.5rem', marginTop: '-0.5rem'}}>
+                        Crie modelos padrão para os termos e condições. Eles serão pré-preenchidos automaticamente no gerador de orçamentos, economizando seu tempo.
+                    </p>
                      <div className="form-group">
                         <label>Termos e Condições (Pagamento único)</label>
                         <textarea name="proposalOneTimeTemplate" value={profileData.proposalOneTimeTemplate || ''} onChange={handleChange} rows={5}></textarea>

@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-// Recriar o cliente Supabase aqui ou importá-lo de um arquivo de configuração compartilhado
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-let supabase = null;
-if (supabaseUrl && !supabaseUrl.includes('SEU_SUPABASE_URL_AQUI') && supabaseAnonKey && !supabaseAnonKey.includes('SEU_SUPABASE_ANON_KEY_AQUI')) {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-}
+import supabase from '../supabaseClient'; // Importa a instância centralizada
 
 const AuthPage = () => {
     const [isLoginView, setIsLoginView] = useState(false);
@@ -17,7 +9,7 @@ const AuthPage = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const authDisabledMessage = "A autenticação está desabilitada. Para ativar, o desenvolvedor precisa configurar as credenciais do Supabase no arquivo index.html.";
+    const authDisabledMessage = "A autenticação está desabilitada. Verifique as credenciais do Supabase na configuração.";
 
     const handleAuthAction = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { AnalysisResult, UserProfile } from '../../types';
 import { analyzeCompanyPresence } from '../../services/geminiService';
-import { parseMarkdownTable } from '../utils/parsers';
-import { CompanyData, SummaryPoint } from '../../types';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 interface AppFormProps {
     onBack: () => void;
     onResult: (result: AnalysisResult, companyName: string) => void;
+    onQueueAnalysis: (formData: Record<string, string>) => void;
     userProfile: UserProfile | null;
 }
 
-const SEPARATOR_MAIN = "---ANALYSIS_BREAK---";
-const SEPARATOR_SUMMARY = "---SUMMARY_BREAK---";
-const SEPARATOR_RECOMMENDATION = "---RECOMMENDATION_BREAK---";
-const SEPARATOR_HASHTAG = "---HASHTAG_BREAK---";
-
-const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
+const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProps) => {
     const [companyName, setCompanyName] = useState('');
     const [city, setCity] = useState(userProfile?.companyCity || '');
     const [state, setState] = useState(userProfile?.companyState || '');
@@ -26,6 +21,7 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
     const [keywords, setKeywords] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const isOnline = useOnlineStatus();
 
     useEffect(() => {
         if (userProfile?.companyCity && !city) {
@@ -42,31 +38,23 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
             setError("Por favor, preencha todos os campos.");
             return;
         }
+
+        if (!isOnline) {
+            const formData = { companyName, city, state, street, number, neighborhood, complement, keywords };
+            onQueueAnalysis(formData);
+            alert('Você está offline. Sua solicitação de análise foi salva e será processada assim que a conexão for restabelecida.');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
             const keywordsArray = keywords.split(',').map(k => k.trim()).filter(Boolean);
-            const { responseText, groundingChunks } = await analyzeCompanyPresence(companyName, street, number, complement, neighborhood, city, state, keywordsArray);
-
-            const [tablePart, rest] = responseText.split(SEPARATOR_MAIN);
-            const [summaryTablePart, restAfterSummary] = rest.split(SEPARATOR_SUMMARY);
-            const [analysisPart, restAfterAnalysis] = restAfterSummary.split(SEPARATOR_RECOMMENDATION);
-            const [recommendationsPart, hashtagsPart] = restAfterAnalysis.split(SEPARATOR_HASHTAG);
-
-            const tableData = parseMarkdownTable<CompanyData>(tablePart);
-            const summaryTableData = parseMarkdownTable<SummaryPoint>(summaryTablePart);
-
-            const analysis = analysisPart.trim();
-            const recommendations = recommendationsPart.trim();
-            const hashtags = hashtagsPart.replace(/### Hashtags Estratégicas para Visibilidade/i, '').trim();
+            const { analysisResult, groundingChunks } = await analyzeCompanyPresence(companyName, street, number, complement, neighborhood, city, state, keywordsArray);
 
             onResult({
-                tableData,
-                summaryTable: summaryTableData,
-                analysis,
-                recommendations,
-                hashtags,
+                ...analysisResult,
                 groundingChunks
             }, companyName);
         } catch (err: any) {
@@ -206,7 +194,7 @@ const AppForm = ({ onBack, onResult, userProfile }: AppFormProps) => {
             {error && <p className="error-box">{error}</p>}
             <button type="submit" disabled={loading}>
                  {loading ? <span className="button-spinner"></span> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 16.17l7.59-7.59L19 10l-9 9z"></path></svg>}
-                {loading ? 'Gerando Análise...' : 'Gerar Análise'}
+                {loading ? 'Gerando Análise...' : (isOnline ? 'Gerar Análise' : 'Salvar para Gerar Online')}
             </button>
         </form>
     </div>

@@ -245,7 +245,25 @@ const DashboardPage = ({
                     <div className="history-list">
                         {filteredHistory.map((item) => (
                             <div key={item.id} className="history-card-item">
-                                {editingItem?.id === item.id ? (
+                                {item.status === 'pending' ? (
+                                    <>
+                                        <div className="history-card-header">
+                                            <div>
+                                                <h3 className="history-card-company">{item.companyName}</h3>
+                                                <p className="history-card-date">Criado em {new Date(item.date).toLocaleDateString('pt-BR')}</p>
+                                            </div>
+                                            <span className="status-badge status-Draft">Pendente</span>
+                                        </div>
+                                        <p className="history-card-summary">{item.analysis}</p>
+                                        <div className="history-card-actions">
+                                             <button className="history-card-button btn-secondary" disabled>Gerar Orçamento</button>
+                                            <button className="history-card-button" disabled>Ver Análise</button>
+                                            <button className="btn-icon btn-delete" title="Excluir Análise" onClick={() => { if(window.confirm(`Tem certeza que deseja excluir esta solicitação pendente?`)) { onDeleteHistoryItem(item.id); }}}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : editingItem?.id === item.id ? (
                                     <form className="history-item-edit-form" onSubmit={handleSaveEdit}>
                                         <div className="input-group">
                                             <input

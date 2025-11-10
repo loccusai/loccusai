@@ -64,6 +64,7 @@ export interface AnalysisHistoryItem extends AnalysisResult {
     id: string;
     companyName: string;
     date: Date;
+    status?: 'pending' | 'synced';
 }
 
 export interface ProposalServiceItem {
@@ -87,6 +88,8 @@ export interface Proposal {
   totalRecurringValue: number;
   analysisResult: AnalysisResult;
   clientEmail?: string;
+  contactName?: string;
+  contactPhone?: string;
   termsAndConditions?: string;
 }
 
