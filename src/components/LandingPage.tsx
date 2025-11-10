@@ -1,41 +1,10 @@
-import React, { useState, useEffect } from 'react';
-
-// Dados para o carrossel de depoimentos
-const testimonials = [
-    {
-        quote: "Eu passava horas montando relatórios de concorrentes. Com o Loccus AI, faço em minutos o que antes levava um dia inteiro. Meus clientes ficam impressionados e eu ganho mais tempo para focar em estratégia.",
-        author: "João P.",
-        title: "Gestor de Tráfego",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAqEAACAgEDAwQCAAcAAAAAAAAAAQIRAwQhEjFBUQUTImFxFIGRoUKxwf/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAHREBAQEAAgMBAQEAAAAAAAAAAAERAiESMUFREv/aAAwDAQACEQMRAD8A9NjjGMYxjYRiMYwYxjGDAA5s5sAxnNisBqG0hsgbQ2kCSA2kCSA2kNJDSAkDYGyBtIbQEgLQ2gJAbQEgJjGxjAxjZGNhGMYxgxhYxjAYsYxggc2c2MYDnNiMYwYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGMAYxjGAf/Z"
-    },
-    {
-        quote: "Levar um relatório da Loccus AI para la reunião de prospecção muda o jogo. O cliente vê na hora os pontos fracos e onde podemos atuar. Fechei 3 novos contratos no último mês usando essa tática.",
-        author: "Maria F.",
-        title: "Freelancer de SEO Local",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMBBAUABgf/xAAuEAACAQMDAgQFAwUAAAAAAAAAAQIDBBEhMQUSQVFhInGBkRMyobFCUnLB0eH/xAAZAQADAQEBAAAAAAAAAAAAAAAAAQIDBAX/xAAeEQEBAQEAAgIDAQAAAAAAAAAAAQIREiEDMUEiE//aAAwDAQACEQMRAD8A9+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABG5uKVpSlOb1yZlK7q1s5bSXZFb8/JzV1bQ81rVJVZNuTbfVmPqZ6Iym28t5ZzrqbA1YAAigAAAAAAAAAAAAAAAAAI16saNNzk9EV3a2hb0nKT1exxr1Z1pycm22+pnLll4jVvOa1epOrNykyPUzQRgJGAJGAJAAAAAAAAAAAAAAAACVlQlWqxiory/RGrZ0o0acYxWiRVs6KoUoxS6ZZO3HHuX2Z88/uABybgAAAAAAAAAAAAA//9k="
-    },
-    {
-        quote: "Antes era difícil mostrar o 'antes e depois' de um trabalho de SEO local. Agora, os relatórios visuais fazem isso por mim. A ferramenta se paga sozinha só com a clareza que ela traz para o cliente.",
-        author: "Carlos S.",
-        title: "Sócio de Agência",
-        avatar: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAA8ADwDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAgMAAQQFBgf/xAAoEAACAgEEAgEEAgMBAAAAAAABAgMRBAASITEFECJBURMYYXGBI0L/xAAZAQADAQEBAAAAAAAAAAAAAAAAAQIDBAX/xAdEQEBAAICAwEAAAAAAAAAAAAAAQIRITESQVEDMv/aAAwDAQACEQMRAD8A9WwMDAwMAYGBgYAwMDAwMAYGBgYAwYGBgDFx9L3LLyOXLxI8aF+2t1C2sWTXXe+rG9d6tW9+g7iY0x2y5a0z4+T5cTJyYsfHyYkdKyKrqDYNgjcEEA9fW6d6P5k8R4uL5C8bIyHWR8aI1FPsLMoYqNN1Wz0P2+t+vI3f8AB+A8bC8dyPDYfDxL2XlcjLk9mMIzxYccqtc5AHf0jUdtg0AbPz1gYGBgYAwMDAwMAYGBgYAwMDAwP/9k="
-    }
-];
+import React from 'react';
 
 interface LandingPageProps {
     onStart: () => void;
 }
 
 const LandingPage = ({ onStart }: LandingPageProps) => {
-    const [activeIndex, setActiveIndex] = useState(0);
-    
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveIndex(current => (current + 1) % testimonials.length);
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
     return (
     <div className="landing-page">
         <header className="landing-header">
@@ -82,30 +51,6 @@ const LandingPage = ({ onStart }: LandingPageProps) => {
                 </div>
                  <button className="hero-cta pricing-cta" onClick={onStart}>Começar Agora</button>
             </div>
-        </section>
-        <section className="quote-section">
-             <h2 className="section-title">Feito por quem entende do seu dia a dia.</h2>
-             <div className="carousel-container">
-                <div className="carousel-slider" style={{ transform: `translateX(-${activeIndex * 100}%)` }}>
-                    {testimonials.map((item, index) => (
-                        <div className="carousel-slide" key={index}>
-                            <img src={item.avatar} alt={`Foto de ${item.author}`} className="quote-avatar" />
-                            <blockquote>"{item.quote}"</blockquote>
-                            <cite>{item.author}</cite>
-                            <cite className="cite-title">{item.title}</cite>
-                        </div>
-                    ))}
-                </div>
-             </div>
-             <div className="carousel-dots">
-                {testimonials.map((_, index) => (
-                    <span 
-                        key={index}
-                        className={`carousel-dot ${index === activeIndex ? 'active' : ''}`}
-                        onClick={() => setActiveIndex(index)}
-                    ></span>
-                ))}
-             </div>
         </section>
         <section className="cta-section"><h2 className="section-title">Pronto para dominar o mercado local para seus clientes?</h2><button className="hero-cta" onClick={onStart}>Começar Agora</button></section>
         <footer className="landing-footer"><p>© 2024 Loccus AI. Todos os direitos reservados.</p></footer>

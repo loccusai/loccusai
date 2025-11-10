@@ -3,7 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import { AnalysisHistoryItem, AnalysisResult, Proposal, ProposalServiceItem, ProposalStatus, ServiceLibraryItem, UserProfile } from '../types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { analyzeCompanyPresence } from '../../services/geminiService';
+import { analyzeCompanyPresence } from '../services/geminiService';
 import { parseMarkdownTable } from './utils/parsers';
 import supabase from './supabaseClient'; // Importa a instância centralizada
 
@@ -16,6 +16,7 @@ import SettingsPage from './components/SettingsPage';
 import ProposalBuilderPage from './components/ProposalBuilderPage';
 import ProposalsListPage from './components/ProposalsListPage';
 import ServiceLibraryPage from './components/ServiceLibraryPage';
+import Sidebar from './components/Sidebar';
 
 interface SyncAction {
   type: 'CREATE_ANALYSIS' | 'UPDATE_ANALYSIS' | 'DELETE_ANALYSIS';
@@ -98,7 +99,7 @@ function proposalFromSnakeCase(item: any): Proposal {
 
 // --- Componente Principal ---
 export default function App() {
-    type Page = 'landing' | 'auth' | 'dashboard' | 'app' | 'result' | 'profile' | 'settings' | 'proposalBuilder' | 'proposalsList' | 'serviceLibrary';
+    type Page = 'landing' | 'auth' | 'history' | 'app' | 'result' | 'settings' | 'proposalBuilder' | 'proposalsList' | 'serviceLibrary';
     const [page, setPage] = useState<Page>('landing');
     const [currentResult, setCurrentResult] = useState<AnalysisHistoryItem | null>(null);
     const [history, setHistory] = useLocalStorage<AnalysisHistoryItem[]>('analysisHistory', []);
@@ -108,6 +109,7 @@ export default function App() {
     const [session, setSession] = useState<Session | null>(null);
     const [userProfile, setUserProfile] = useLocalStorage<UserProfile | null>('userProfile', null);
     const [analysisForProposal, setAnalysisForProposal] = useState<AnalysisHistoryItem | null>(null);
+    const [proposalToEdit, setProposalToEdit] = useState<Proposal | null>(null);
     const isOnline = useOnlineStatus();
     
     useEffect(() => {
@@ -119,7 +121,7 @@ export default function App() {
         if (!supabase) {
             const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
              if (hasSeenLanding) {
-                setPage('dashboard');
+                setPage('history');
              } else {
                  setPage('landing');
              }
@@ -152,7 +154,7 @@ export default function App() {
                 } else if (data) {
                     setUserProfile(data as UserProfile);
                 }
-                setPage('dashboard');
+                setPage('history');
             } else {
                  const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
                  if (hasSeenLanding) {
@@ -292,7 +294,7 @@ export default function App() {
         if (supabase && !session) {
              setPage('auth');
         } else {
-            setPage('dashboard');
+            setPage('history');
         }
     };
 
@@ -443,7 +445,7 @@ export default function App() {
             payload: { formData, tempId },
             timestamp: Date.now()
         }]);
-        setPage('dashboard');
+        setPage('history');
     };
     
     const handleUpdateServiceLibrary = async (services: ServiceLibraryItem[]) => {
@@ -453,65 +455,84 @@ export default function App() {
     };
 
     const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
-    
-    const renderPage = () => {
+
+    const isDashboardView = (p: Page): p is 'history' | 'app' | 'proposalsList' | 'serviceLibrary' | 'settings' | 'proposalBuilder' | 'result' => {
+        return ['history', 'app', 'proposalsList', 'serviceLibrary', 'settings', 'proposalBuilder', 'result'].includes(p);
+    };
+
+    const renderDashboardContent = () => {
         switch(page) {
-            case 'landing':
-                return <LandingPage onStart={handleStart} />;
-            case 'auth':
-                return <AuthPage />;
-            case 'dashboard':
+            case 'history':
                 return <DashboardPage
                     onNavigateToApp={() => setPage('app')}
-                    onLogout={handleLogout}
                     history={history}
-                    theme={theme}
-                    toggleTheme={toggleTheme}
                     userProfile={userProfile}
-                    onNavigateToProfile={() => setPage('profile')}
-                    onNavigateToSettings={() => setPage('settings')}
-                    onNavigateToProposalsList={() => setPage('proposalsList')}
-                    onNavigateToProposalBuilder={(analysis) => { setAnalysisForProposal(analysis); setPage('proposalBuilder'); }}
-                    onNavigateToServiceLibrary={() => setPage('serviceLibrary')}
+                    onNavigateToProposalBuilder={(analysis) => { setProposalToEdit(null); setAnalysisForProposal(analysis); setPage('proposalBuilder'); }}
                     onUpdateHistoryItem={handleUpdateHistoryItem}
                     onDeleteHistoryItem={handleDeleteHistoryItem}
                 />;
             case 'app':
                 return <AppForm 
-                            onBack={() => setPage('dashboard')} 
+                            onBack={() => setPage('history')}
                             onResult={handleResult} 
                             onQueueAnalysis={handleQueueAnalysis}
                             userProfile={userProfile}
                        />;
             case 'result':
                 return currentResult && (
-                    <>
-                    <main>
-                        <button className="back-button" onClick={() => { setCurrentResult(null); setPage('dashboard'); }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                            Voltar ao Dashboard
-                        </button>
-                        <AnalysisResultDisplay result={currentResult} onGenerateProposal={(analysis) => { setAnalysisForProposal(analysis as AnalysisHistoryItem); setPage('proposalBuilder'); }}/>
-                    </main>
-                    </>
+                    <AnalysisResultDisplay 
+                        result={currentResult} 
+                        onGenerateProposal={(analysis) => { setProposalToEdit(null); setAnalysisForProposal(analysis as AnalysisHistoryItem); setPage('proposalBuilder'); }}
+                        onBackToHistory={() => { setCurrentResult(null); setPage('history'); }}
+                    />
                 );
-             case 'profile':
              case 'settings':
-                return <SettingsPage onBack={() => setPage('dashboard')} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} />;
+                return <SettingsPage onBack={() => setPage('history')} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} />;
              case 'proposalBuilder':
-                return analysisForProposal && <ProposalBuilderPage onBack={() => setPage('dashboard')} analysis={analysisForProposal} userProfile={userProfile} onSaveProposal={handleSaveProposal} />;
+                return analysisForProposal && <ProposalBuilderPage onBack={() => { setPage('history'); setProposalToEdit(null); }} analysis={analysisForProposal} userProfile={userProfile} onSaveProposal={handleSaveProposal} proposalToEdit={proposalToEdit} />;
              case 'proposalsList':
-                return <ProposalsListPage onBack={() => setPage('dashboard')} proposals={proposals} onUpdateProposal={handleSaveProposal} onDeleteProposal={handleDeleteProposal} onNavigateToBuilder={(analysis) => { setAnalysisForProposal(analysis); setPage('proposalBuilder'); }} />;
+                return <ProposalsListPage onBack={() => setPage('history')} proposals={proposals} onUpdateProposal={handleSaveProposal} onDeleteProposal={handleDeleteProposal} onNavigateToBuilder={(proposal) => { 
+                    setProposalToEdit(proposal);
+                    const analysis: AnalysisHistoryItem = {
+                        ...proposal.analysisResult,
+                        id: proposal.analysisId,
+                        companyName: proposal.clientName,
+                        date: proposal.createdAt,
+                        status: 'synced',
+                    };
+                    setAnalysisForProposal(analysis); 
+                    setPage('proposalBuilder'); 
+                }} />;
              case 'serviceLibrary':
-                return <ServiceLibraryPage onBack={() => setPage('dashboard')} services={userProfile?.serviceLibrary || []} onUpdateServices={handleUpdateServiceLibrary} />;
+                return <ServiceLibraryPage onBack={() => setPage('history')} services={userProfile?.serviceLibrary || []} onUpdateServices={handleUpdateServiceLibrary} />;
             default:
-                return <LandingPage onStart={handleStart} />;
+                return null;
         }
     };
+    
+    const dashboardActiveView = isDashboardView(page) ? (page === 'result' || page === 'proposalBuilder' ? 'history' : page) : 'history';
 
     return (
-        <div className={`app-container ${page === 'landing' || page === 'auth' ? 'is-fullpage' : ''}`}>
-           {renderPage()}
+        <div className={`app-container ${page === 'landing' || page === 'auth' ? 'is-fullpage' : 'is-dashboard-layout'}`}>
+           {isDashboardView(page) ? (
+                <div className="dashboard-layout">
+                    <Sidebar 
+                        activeView={dashboardActiveView}
+                        onNavigate={(view) => setPage(view)}
+                        userProfile={userProfile}
+                        onLogout={handleLogout}
+                        theme={theme}
+                        toggleTheme={toggleTheme}
+                    />
+                    <div className="main-content">
+                        {renderDashboardContent()}
+                    </div>
+                </div>
+            ) : page === 'landing' ? (
+                <LandingPage onStart={handleStart} />
+            ) : (
+                <AuthPage />
+            )}
         </div>
     );
 }

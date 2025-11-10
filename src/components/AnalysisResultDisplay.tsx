@@ -6,9 +6,10 @@ import { AnalysisResult, AnalysisHistoryItem, GroundingChunk, CompanyData, Summa
 interface AnalysisResultDisplayProps {
     result: AnalysisResult | AnalysisHistoryItem;
     onGenerateProposal?: (analysis: AnalysisResult | AnalysisHistoryItem) => void;
+    onBackToHistory?: () => void;
 }
 
-const AnalysisResultDisplay = ({ result, onGenerateProposal }: AnalysisResultDisplayProps) => {
+const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: AnalysisResultDisplayProps) => {
     const { tableData, summaryTable, analysis, recommendations, hashtags, groundingChunks } = result;
     const [feedbackMessage, setFeedbackMessage] = useState('');
     const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
@@ -181,7 +182,13 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal }: AnalysisResultDis
 
     return (
         <div className="results-container">
-            <header className="dashboard-header">
+             {onBackToHistory && (
+                 <button className="back-button" onClick={onBackToHistory}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Voltar ao Histórico
+                </button>
+            )}
+            <header className="dashboard-header" style={{ marginTop: onBackToHistory ? '1.5rem' : '0' }}>
                 <h1>Análise: {(result as AnalysisHistoryItem).companyName}</h1>
             </header>
             <div className={`copy-notification ${isFeedbackVisible ? 'show' : ''}`}>

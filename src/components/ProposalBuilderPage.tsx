@@ -8,9 +8,10 @@ interface ProposalBuilderPageProps {
     analysis: AnalysisHistoryItem;
     userProfile: UserProfile | null;
     onSaveProposal: (proposal: Proposal) => void;
+    proposalToEdit: Proposal | null;
 }
 
-const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: ProposalBuilderPageProps) => {
+const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, proposalToEdit }: ProposalBuilderPageProps) => {
     const [services, setServices] = useState<ProposalServiceItem[]>([]);
     const [clientEmail, setClientEmail] = useState('');
     const [contactName, setContactName] = useState('');
@@ -20,7 +21,18 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
     const [pdfUrl, setPdfUrl] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState('');
+    const [isPreviewing, setIsPreviewing] = useState(false);
     
+    useEffect(() => {
+        if (proposalToEdit) {
+            setServices(proposalToEdit.services);
+            setClientEmail(proposalToEdit.clientEmail || '');
+            setContactName(proposalToEdit.contactName || '');
+            setContactPhone(proposalToEdit.contactPhone || '');
+            setTerms(proposalToEdit.termsAndConditions || '');
+        }
+    }, [proposalToEdit]);
+
     const addServiceFromLibrary = (item: ServiceLibraryItem) => {
         const newService: ProposalServiceItem = { ...item, id: `service_${Date.now()}_${Math.random()}` };
         setServices(prev => [...prev, newService]);
@@ -56,17 +68,39 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
     const handleRemoveService = (id:string) => {
         setServices(prev => prev.filter(s => s.id !== id));
     };
+    
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, ''); 
+        
+        if (value.length > 11) {
+            value = value.substring(0, 11);
+        }
+
+        if (value.length > 10) { 
+            value = value.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+        } else if (value.length > 6) {
+            value = value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+        } else if (value.length > 2) { 
+            value = value.replace(/^(\d{2})(\d{0,4}).*/, '($1) $2');
+        } else if (value.length > 0) { 
+            value = value.replace(/^(\d*)/, '($1');
+        }
+
+        setContactPhone(value);
+    };
 
     const totalOneTime = useMemo(() => services.filter(s => s.type === 'one-time').reduce((acc, s) => acc + s.price, 0), [services]);
     const totalRecurring = useMemo(() => services.filter(s => s.type === 'recurring').reduce((acc, s) => acc + s.price, 0), [services]);
     
      useEffect(() => {
-        if (totalRecurring > 0) {
-            setTerms(userProfile?.proposalRecurringTemplate ?? 'Termos para serviços recorrentes...');
-        } else {
-            setTerms(userProfile?.proposalOneTimeTemplate ?? 'Termos para serviço único...');
+        if (!proposalToEdit) { // Only set template for new proposals
+            if (totalRecurring > 0) {
+                setTerms(userProfile?.proposalRecurringTemplate ?? 'Termos para serviços recorrentes...');
+            } else {
+                setTerms(userProfile?.proposalOneTimeTemplate ?? 'Termos para serviço único...');
+            }
         }
-    }, [totalOneTime, totalRecurring, userProfile]);
+    }, [totalOneTime, totalRecurring, userProfile, proposalToEdit]);
     
     const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -77,11 +111,11 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
         const cleanAnalysisResult: AnalysisResult = { tableData, summaryTable, analysis: analysisText, recommendations, hashtags, groundingChunks };
 
         return {
-            id: `prop_${Date.now()}`,
+            id: proposalToEdit ? proposalToEdit.id : crypto.randomUUID(),
             analysisId: analysis.id,
             clientName: analysis.companyName,
-            status: 'Draft',
-            createdAt: new Date(),
+            status: proposalToEdit ? proposalToEdit.status : 'Draft',
+            createdAt: proposalToEdit ? proposalToEdit.createdAt : new Date(),
             services,
             totalOneTimeValue: totalOneTime,
             totalRecurringValue: totalRecurring,
@@ -98,17 +132,24 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
         onSaveProposal(proposal);
         
         setIsSaving(true);
-        setSaveMessage('Orçamento salvo!');
+        setSaveMessage('Salvo com sucesso!');
         setTimeout(() => {
             setIsSaving(false);
             setSaveMessage('');
         }, 2500);
     };
 
-    const handleSaveAndPreview = () => {
-        const newProposal = createProposalObject();
-        onSaveProposal(newProposal);
-        generateProposalPDF('bloburl');
+    const handleSaveAndPreview = async () => {
+        setIsPreviewing(true);
+        try {
+            const newProposal = createProposalObject();
+            onSaveProposal(newProposal);
+            await generateProposalPDF('bloburl');
+        } catch (err) {
+            console.error("Falha ao gerar a pré-visualização do PDF", err);
+        } finally {
+            setIsPreviewing(false);
+        }
     };
     
     const generateProposalPDF = async (outputType: 'bloburl' | 'save' = 'bloburl') => {
@@ -193,7 +234,7 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
     return (
         <>
             <header className="dashboard-header">
-                <h1>Gerador de Orçamento</h1>
+                <h1>{proposalToEdit ? 'Editar Orçamento' : 'Gerador de Orçamento'}</h1>
                 <button className="back-button" onClick={onBack} style={{marginBottom: 0}}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                     Voltar
@@ -218,7 +259,8 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
                                 type="tel"
                                 placeholder="Telefone do contato (opcional)"
                                 value={contactPhone}
-                                onChange={(e) => setContactPhone(e.target.value)}
+                                onChange={handlePhoneChange}
+                                maxLength={15}
                                 style={{ paddingLeft: '12px' }}
                             />
                         </div>
@@ -315,17 +357,19 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal }: 
                  </div>
 
                 <div className="proposal-actions">
-                     <button className="proposal-actions .btn-secondary" onClick={onBack}>Cancelar</button>
+                     <button className="btn-danger" onClick={onBack} disabled={isSaving || isPreviewing}>Cancelar</button>
                      <button 
                         type="button" 
-                        className="proposal-actions .btn-secondary"
+                        className="btn-primary"
                         onClick={handleSave}
-                        disabled={isSaving}
-                        style={{minWidth: '150px'}}
+                        disabled={isSaving || isPreviewing}
+                        style={{minWidth: '180px'}}
                      >
-                        {isSaving ? 'Salvando...' : (saveMessage || 'Salvar Orçamento')}
+                        {saveMessage || (isSaving ? 'Salvando...' : 'Salvar Orçamento')}
                     </button>
-                    <button onClick={handleSaveAndPreview}>Salvar e Pré-visualizar PDF</button>
+                    <button className="btn-success" onClick={handleSaveAndPreview} disabled={isSaving || isPreviewing}>
+                        {isPreviewing ? 'Gerando PDF...' : 'Salvar e Pré-visualizar PDF'}
+                    </button>
                 </div>
             </main>
             
