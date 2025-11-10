@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import supabase from '../supabaseClient'; // Importa a instância centralizada
 
 const AuthPage = () => {
-    const [isLoginView, setIsLoginView] = useState(false);
+    const [isLoginView, setIsLoginView] = useState(true);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

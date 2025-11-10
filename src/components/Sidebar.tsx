@@ -12,14 +12,16 @@ interface SidebarProps {
     onLogout: () => void;
     theme: string;
     toggleTheme: () => void;
+    isOpen: boolean;
+    onClose: () => void;
 }
 
-const NavLink = ({ view, activeView, onNavigate, icon, label }: { view: DashboardView, activeView: DashboardView, onNavigate: (view: DashboardView) => void, icon: React.ReactNode, label: string }) => (
+const NavLink = ({ view, activeView, onNavigate, icon, label, onClose }: { view: DashboardView, activeView: DashboardView, onNavigate: (view: DashboardView) => void, icon: React.ReactNode, label: string, onClose: () => void }) => (
     <li>
         <a 
             href="#" 
             className={activeView === view ? 'active' : ''} 
-            onClick={(e) => { e.preventDefault(); onNavigate(view); }}
+            onClick={(e) => { e.preventDefault(); onNavigate(view); onClose(); }}
         >
             {icon}
             <span>{label}</span>
@@ -27,9 +29,9 @@ const NavLink = ({ view, activeView, onNavigate, icon, label }: { view: Dashboar
     </li>
 );
 
-const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleTheme }: SidebarProps) => {
+const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleTheme, isOpen, onClose }: SidebarProps) => {
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
             <div className="sidebar-header">
                 <div className="landing-logo">
                     <svg className="logo-image" viewBox="0 0 142 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,6 +51,7 @@ const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleT
                         onNavigate={onNavigate}
                         icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>}
                         label="Nova Análise"
+                        onClose={onClose}
                     />
                     <NavLink 
                         view="history" 
@@ -56,6 +59,7 @@ const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleT
                         onNavigate={onNavigate}
                         icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>}
                         label="Histórico"
+                        onClose={onClose}
                     />
                     <NavLink 
                         view="proposalsList" 
@@ -63,6 +67,7 @@ const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleT
                         onNavigate={onNavigate}
                         icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>}
                         label="Orçamentos"
+                        onClose={onClose}
                     />
                      <NavLink 
                         view="serviceLibrary" 
@@ -70,6 +75,7 @@ const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleT
                         onNavigate={onNavigate}
                         icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>}
                         label="Serviços"
+                        onClose={onClose}
                     />
                      <NavLink 
                         view="settings" 
@@ -77,6 +83,7 @@ const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleT
                         onNavigate={onNavigate}
                         icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>}
                         label="Configurações"
+                        onClose={onClose}
                     />
                 </ul>
             </nav>
@@ -85,9 +92,9 @@ const Sidebar = ({ activeView, onNavigate, userProfile, onLogout, theme, toggleT
                 <ThemeSwitch theme={theme} toggleTheme={toggleTheme} />
                  {userProfile && <ProfileDropdown 
                     user={userProfile} 
-                    onLogout={onLogout} 
-                    onNavigateToProfile={() => onNavigate('settings')}
-                    onNavigateToSettings={() => onNavigate('settings')} 
+                    onLogout={() => { onLogout(); onClose(); }} 
+                    onNavigateToProfile={() => { onNavigate('settings'); onClose(); }}
+                    onNavigateToSettings={() => { onNavigate('settings'); onClose(); }} 
                  />}
             </div>
         </aside>

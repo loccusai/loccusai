@@ -97,6 +97,27 @@ function proposalFromSnakeCase(item: any): Proposal {
 }
 
 
+interface MobileHeaderProps {
+    pageTitle: string;
+    onToggleSidebar: () => void;
+}
+
+const MobileHeader = ({ pageTitle, onToggleSidebar }: MobileHeaderProps) => {
+    return (
+        <header className="mobile-header">
+            <button className="sidebar-toggle-btn" onClick={onToggleSidebar} aria-label="Abrir menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1 className="mobile-header-title">{pageTitle}</h1>
+        </header>
+    );
+};
+
+
 // --- Componente Principal ---
 export default function App() {
     type Page = 'landing' | 'auth' | 'history' | 'app' | 'result' | 'settings' | 'proposalBuilder' | 'proposalsList' | 'serviceLibrary';
@@ -110,6 +131,7 @@ export default function App() {
     const [userProfile, setUserProfile] = useLocalStorage<UserProfile | null>('userProfile', null);
     const [analysisForProposal, setAnalysisForProposal] = useState<AnalysisHistoryItem | null>(null);
     const [proposalToEdit, setProposalToEdit] = useState<Proposal | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const isOnline = useOnlineStatus();
     
     useEffect(() => {
@@ -389,10 +411,17 @@ export default function App() {
     };
 
     const handleDeleteProposal = async (id: string) => {
-        setProposals(proposals.filter(p => p.id !== id));
         if (supabase && session?.user) {
             const { error } = await supabase.from('proposals').delete().eq('id', id);
-            if(error) console.error("Erro ao deletar proposta do Supabase:", error);
+            if(error) {
+                console.error("Erro ao deletar proposta do Supabase:", error);
+                alert("Ocorreu um erro ao excluir o orçamento. Por favor, tente novamente.");
+                return;
+            }
+            // Apenas atualiza o estado local APÓS o sucesso da exclusão no BD
+            setProposals(prev => prev.filter(p => p.id !== id));
+        } else {
+            alert("Não é possível excluir o orçamento. Verifique sua conexão e autenticação.");
         }
     };
     
@@ -412,18 +441,37 @@ export default function App() {
     };
     
     const handleDeleteHistoryItem = async (id: string) => {
+        // Lida com itens não sincronizados (criados offline)
         if (id.startsWith('pending_')) {
             setSyncQueue(prev => prev.filter(action => 
                 !(action.type === 'CREATE_ANALYSIS' && action.payload.tempId === id)
             ));
-        } else if (!isOnline) {
-            setSyncQueue(prev => [...prev, { type: 'DELETE_ANALYSIS', payload: { id }, timestamp: Date.now() }]);
-        } else if (supabase && session?.user) {
-            const { error } = await supabase.from('analyses').delete().eq('id', id);
-            if (error) console.error("Erro ao deletar item do histórico do Supabase:", error);
+            setHistory(prev => prev.filter(item => item.id !== id));
+            return;
         }
 
-        setHistory(history.filter(item => item.id !== id));
+        // Lida com a exclusão de um item sincronizado enquanto offline
+        if (!isOnline) {
+            setSyncQueue(prev => [...prev, { type: 'DELETE_ANALYSIS', payload: { id }, timestamp: Date.now() }]);
+            setHistory(prev => prev.filter(item => item.id !== id));
+            return;
+        }
+        
+        // Lida com a exclusão de um item sincronizado enquanto online
+        if (supabase && session?.user) {
+            const { error } = await supabase.from('analyses').delete().eq('id', id);
+            
+            if (error) {
+                console.error("Erro ao deletar item do histórico do Supabase:", error);
+                alert("Ocorreu um erro ao excluir a análise. Por favor, tente novamente.");
+                return; // Para a execução em caso de falha
+            }
+            
+            // Apenas no sucesso, atualiza a UI
+            setHistory(prev => prev.filter(item => item.id !== id));
+        } else {
+             alert("Não é possível excluir a análise. Verifique sua conexão e autenticação.");
+        }
     };
     
     const handleQueueAnalysis = (formData: Record<string, string>) => {
@@ -458,6 +506,19 @@ export default function App() {
 
     const isDashboardView = (p: Page): p is 'history' | 'app' | 'proposalsList' | 'serviceLibrary' | 'settings' | 'proposalBuilder' | 'result' => {
         return ['history', 'app', 'proposalsList', 'serviceLibrary', 'settings', 'proposalBuilder', 'result'].includes(p);
+    };
+
+    const getPageTitle = (page: Page): string => {
+        switch(page) {
+            case 'history': return 'Histórico';
+            case 'app': return 'Nova Análise';
+            case 'result': return currentResult?.companyName || 'Análise';
+            case 'settings': return 'Configurações';
+            case 'proposalBuilder': return proposalToEdit ? 'Editar Orçamento' : 'Criar Orçamento';
+            case 'proposalsList': return 'Orçamentos';
+            case 'serviceLibrary': return 'Serviços';
+            default: return 'Loccus AI';
+        }
     };
 
     const renderDashboardContent = () => {
@@ -516,6 +577,10 @@ export default function App() {
         <div className={`app-container ${page === 'landing' || page === 'auth' ? 'is-fullpage' : 'is-dashboard-layout'}`}>
            {isDashboardView(page) ? (
                 <div className="dashboard-layout">
+                    <MobileHeader 
+                        pageTitle={getPageTitle(page)}
+                        onToggleSidebar={() => setIsSidebarOpen(true)}
+                    />
                     <Sidebar 
                         activeView={dashboardActiveView}
                         onNavigate={(view) => setPage(view)}
@@ -523,7 +588,10 @@ export default function App() {
                         onLogout={handleLogout}
                         theme={theme}
                         toggleTheme={toggleTheme}
+                        isOpen={isSidebarOpen}
+                        onClose={() => setIsSidebarOpen(false)}
                     />
+                    {isSidebarOpen && <div className="mobile-overlay" onClick={() => setIsSidebarOpen(false)}></div>}
                     <div className="main-content">
                         {renderDashboardContent()}
                     </div>

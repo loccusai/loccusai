@@ -907,6 +907,54 @@
             background-color: var(--secondary-bg-color);
         }
         
+        /* Mobile Navigation Styles */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: var(--card-bg-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1rem;
+            align-items: center;
+            z-index: 101;
+        }
+
+        .sidebar-toggle-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            color: var(--icon-color);
+            margin-right: 1rem;
+        }
+
+        .mobile-header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .mobile-overlay {
+            animation: fadeIn 0.3s ease;
+        }
+
 
         @media (max-width: 768px) {
             .hero-title {
@@ -918,13 +966,27 @@
             .hero, .features-section, .pricing-section, .cta-section, .landing-footer {
                 padding: 4rem 1rem;
             }
+
+            .dashboard-layout {
+                padding-top: 60px;
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+            
             .sidebar {
                 transform: translateX(-100%);
-                /* This is a simple hide for now. A real app would have a toggle button. */
+                box-shadow: 4px 0px 20px rgba(0, 0, 0, 0.1);
             }
+            
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+            
             .main-content {
                 margin-left: 0;
-                padding: 1rem;
+                padding: 1.5rem;
             }
         }
     </style>
