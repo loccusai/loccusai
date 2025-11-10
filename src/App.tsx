@@ -202,16 +202,20 @@ export default function App() {
 
                 const { data: remoteProposals, error: proposalsError } = await supabase
                     .from('proposals')
-                    .select('*')
+                    .select('*, analysis_result')
                     .eq('user_id', session.user.id);
                 if (proposalsError) {
                     console.error("Erro ao buscar propostas do Supabase:", proposalsError);
                 } else if (remoteProposals) {
-                    const parsedProposals = remoteProposals.map(item => ({
-                        ...item,
-                        createdAt: new Date(item.createdAt),
-                        expiresAt: item.expiresAt ? new Date(item.expiresAt) : undefined,
-                    }));
+                    const parsedProposals = remoteProposals.map(item => {
+                         const { analysis_result, ...rest } = item;
+                        return {
+                            ...rest,
+                            analysisResult: analysis_result,
+                            createdAt: new Date(item.created_at),
+                            expiresAt: item.expires_at ? new Date(item.expires_at) : undefined,
+                        }
+                    });
                     setProposals(parsedProposals as Proposal[]);
                 }
             };
@@ -306,8 +310,41 @@ export default function App() {
         setProposals(updatedProposals);
         
         if (supabase && session?.user) {
-            const { error } = await supabase.from('proposals').upsert({ ...proposal, user_id: session.user.id });
-            if (error) console.error("Erro ao salvar proposta no Supabase:", error);
+            const { analysisResult, ...restOfProposal } = proposal;
+
+            // Extrai apenas os campos de AnalysisResult, descartando os campos extras de AnalysisHistoryItem
+            // para garantir a compatibilidade com a coluna jsonb no Supabase.
+            const { 
+                tableData, 
+                summaryTable, 
+                analysis, 
+                recommendations, 
+                hashtags, 
+                groundingChunks 
+            } = analysisResult;
+            
+            const cleanAnalysisResult = {
+                tableData,
+                summaryTable,
+                analysis,
+                recommendations,
+                hashtags,
+                groundingChunks: groundingChunks || null,
+            };
+
+            // Monta o payload para o Supabase, mapeando explicitamente o campo analysis_result.
+            // O Supabase client cuidará da conversão de camelCase para snake_case para os outros campos.
+            const payload = { 
+                ...restOfProposal, 
+                analysis_result: cleanAnalysisResult,
+                user_id: session.user.id 
+            };
+            
+            const { error } = await supabase.from('proposals').upsert(payload);
+            if (error) {
+                // Log do erro melhorado para exibir a mensagem real em vez de [object Object]
+                console.error("Erro ao salvar proposta no Supabase:", error.message, error);
+            }
         }
     };
 
