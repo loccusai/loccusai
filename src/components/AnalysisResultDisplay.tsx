@@ -63,6 +63,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
     };
     
     const renderRecommendations = (recsText: string) => {
+        if (!recsText) return null;
         const cleanedText = recsText.replace(/^###\s*Recomendações Estratégicas\s*/i, '').trim();
         const recommendationsArray = cleanedText.split(/\n\s*(?=\d+\.\s*)/).filter(Boolean);
 
@@ -96,6 +97,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
     };
 
     const renderAnalysis = (analysisText: string) => {
+        if (!analysisText) return null;
         const cleanedText = analysisText.replace(/^###\s*Análise Detalhada\s*/i, '').trim();
         const points = cleanedText.split(/\n\s*(?=\*\*(.*?)\*\*\s*:)/).filter(Boolean);
 
@@ -196,12 +198,12 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
             </div>
 
             {onGenerateProposal && (
-                <div className="card-header-with-action" style={{ marginBottom: '2rem' }}>
-                    <button className="copy-button" onClick={generatePdf}>
+                <div className="result-actions-header">
+                    <button className="btn-secondary" onClick={generatePdf}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"></path><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l5 5v11a2 2 0 0 1-2 2z"></path><line x1="9" y1="17" x2="15" y2="17"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="9" x2="11" y2="9"></line></svg>
                         Baixar PDF
                     </button>
-                    <button className="history-card-button" onClick={() => onGenerateProposal(result)}>
+                    <button className="btn-primary" onClick={() => onGenerateProposal(result)}>
                          Gerar Orçamento
                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                     </button>

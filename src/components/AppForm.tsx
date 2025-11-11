@@ -12,6 +12,7 @@ interface AppFormProps {
 
 const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProps) => {
     const [companyName, setCompanyName] = useState('');
+    const [cep, setCep] = useState('');
     const [city, setCity] = useState(userProfile?.companyCity || '');
     const [state, setState] = useState(userProfile?.companyState || '');
     const [street, setStreet] = useState('');
@@ -35,7 +36,7 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!companyName || !city || !state || !keywords) {
-            setError("Por favor, preencha todos os campos.");
+            setError("Por favor, preencha os campos obrigatórios.");
             return;
         }
 
@@ -66,10 +67,11 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
     };
     
     const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
-        const cep = e.target.value.replace(/\D/g, '');
-        if (cep.length === 8) {
+        const cepValue = e.target.value.replace(/\D/g, '');
+        setCep(cepValue);
+        if (cepValue.length === 8) {
             try {
-                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const response = await fetch(`https://viacep.com.br/ws/${cepValue}/json/`);
                 if (!response.ok) throw new Error('CEP não encontrado');
                 const data = await response.json();
                 if (data.erro) throw new Error('CEP inválido');
@@ -99,102 +101,92 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
         <h2 className="form-headline">Gerar Análise de Presença Digital</h2>
         <p className="form-description">Preencha os dados abaixo para que a IA possa realizar uma análise competitiva completa.</p>
         <form onSubmit={handleSubmit}>
-            <div className="input-group">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"></path></svg>
-                <input
-                    type="text"
-                    placeholder="Nome da empresa para analisar"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    required
-                />
-            </div>
-
-            <div className="input-group">
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
-                 <input
-                    type="text"
-                    placeholder="CEP (para preencher endereço)"
-                    onBlur={handleCepBlur}
-                    maxLength={9}
-                 />
-            </div>
-            
-             <div className="address-fields-grid">
-                <div className="input-group address-street">
-                    <input
-                        type="text"
-                        placeholder="Rua / Avenida"
-                        value={street}
-                        onChange={(e) => setStreet(e.target.value)}
-                        style={{ paddingLeft: '12px' }}
-                    />
-                </div>
-                 <div className="input-group address-number">
-                    <input
-                        type="text"
-                        placeholder="Nº"
-                        value={number}
-                        onChange={(e) => setNumber(e.target.value)}
-                        style={{ paddingLeft: '12px' }}
-                    />
-                </div>
-                <div className="input-group address-neighborhood">
-                    <input
-                        type="text"
-                        placeholder="Bairro"
-                        value={neighborhood}
-                        onChange={(e) => setNeighborhood(e.target.value)}
-                        style={{ paddingLeft: '12px' }}
-                    />
-                </div>
-                <div className="input-group address-complement">
-                    <input
-                        type="text"
-                        placeholder="Complemento (sala, andar, etc.)"
-                        value={complement}
-                        onChange={(e) => setComplement(e.target.value)}
-                        style={{ paddingLeft: '12px' }}
-                    />
-                </div>
-                <div className="input-group address-city">
-                    <input
-                        type="text"
-                        placeholder="Cidade"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        required
-                        style={{ paddingLeft: '12px' }}
-                    />
-                </div>
-                <div className="input-group address-state">
-                    <input
-                        type="text"
-                        placeholder="UF"
-                        value={state}
-                        onChange={(e) => setState(e.target.value)}
-                        required
-                        maxLength={2}
-                         style={{ paddingLeft: '12px' }}
-                    />
+            <div className="form-section">
+                <h3>Informações da Empresa</h3>
+                <div className="form-group">
+                    <label htmlFor="companyName">Nome da empresa para analisar *</label>
+                    <div className="input-wrapper">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10z"></path><path d="M16 11h-2v2h2v-2zm-2-4h2v2h-2z"></path></svg>
+                        <input
+                            id="companyName"
+                            type="text"
+                            placeholder="Ex: Pizzaria do Bairro"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            required
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className="input-group">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"></path></svg>
-                <input
-                    type="text"
-                    placeholder="Palavras-chave (ex: restaurante italiano, barbearia, dentista)"
-                    value={keywords}
-                    onChange={(e) => setKeywords(e.target.value)}
-                    required
-                />
+            <div className="form-section">
+                <h3>Endereço para Análise</h3>
+                <div className="form-grid">
+                    <div className="form-group full-width">
+                         <label htmlFor="cep">CEP (Preenche o endereço automaticamente)</label>
+                         <div className="input-wrapper">
+                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
+                             <input
+                                id="cep"
+                                type="text"
+                                placeholder="00000-000"
+                                value={cep}
+                                onChange={(e) => setCep(e.target.value)}
+                                onBlur={handleCepBlur}
+                                maxLength={9}
+                             />
+                        </div>
+                    </div>
+                    <div className="form-group full-width">
+                        <label htmlFor="street">Rua / Avenida</label>
+                        <input id="street" type="text" placeholder="Rua das Flores" value={street} onChange={(e) => setStreet(e.target.value)} />
+                    </div>
+                     <div className="form-group">
+                        <label htmlFor="number">Número</label>
+                        <input id="number" type="text" placeholder="123" value={number} onChange={(e) => setNumber(e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="neighborhood">Bairro</label>
+                        <input id="neighborhood" type="text" placeholder="Centro" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
+                    </div>
+                    <div className="form-group full-width">
+                        <label htmlFor="complement">Complemento</label>
+                        <input id="complement" type="text" placeholder="Sala 1, Bloco A, etc." value={complement} onChange={(e) => setComplement(e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="city">Cidade *</label>
+                        <input id="city" type="text" placeholder="São Paulo" value={city} onChange={(e) => setCity(e.target.value)} required />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="state">Estado (UF) *</label>
+                        <input id="state" type="text" placeholder="SP" value={state} onChange={(e) => setState(e.target.value)} required maxLength={2} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="form-section">
+                <h3>Termos da Pesquisa</h3>
+                <div className="form-group">
+                    <label htmlFor="keywords">Palavras-chave do Negócio *</label>
+                    <div className="input-wrapper">
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.22-1.05-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"></path></svg>
+                        <input
+                            id="keywords"
+                            type="text"
+                            placeholder="restaurante italiano, barbearia, dentista"
+                            value={keywords}
+                            onChange={(e) => setKeywords(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <p className="form-helper-text">Separe por vírgulas para melhores resultados.</p>
+                </div>
             </div>
 
             {error && <p className="error-box">{error}</p>}
-            <button type="submit" disabled={loading}>
-                 {loading ? <span className="button-spinner"></span> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 16.17l7.59-7.59L19 10l-9 9z"></path></svg>}
-                {loading ? 'Gerando Análise...' : (isOnline ? 'Gerar Análise' : 'Salvar para Gerar Online')}
+            <button type="submit" className="submit-btn" disabled={loading}>
+                 {loading ? <span className="button-spinner"></span> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>}
+                {loading ? 'Gerando Análise...' : (isOnline ? 'Gerar Análise com IA' : 'Salvar para Gerar Online')}
             </button>
         </form>
     </div>

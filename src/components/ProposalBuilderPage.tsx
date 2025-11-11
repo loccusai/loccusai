@@ -7,7 +7,7 @@ interface ProposalBuilderPageProps {
     onBack: () => void;
     analysis: AnalysisHistoryItem;
     userProfile: UserProfile | null;
-    onSaveProposal: (proposal: Proposal) => void;
+    onSaveProposal: (proposal: Proposal) => Promise<void>;
     proposalToEdit: Proposal | null;
 }
 
@@ -20,7 +20,6 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
     const [showPdfPreview, setShowPdfPreview] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [saveMessage, setSaveMessage] = useState('');
     const [isPreviewing, setIsPreviewing] = useState(false);
     
     useEffect(() => {
@@ -105,6 +104,11 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
     const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
+    
+    const formatCurrencyInput = (value: number) => {
+        if (value === 0) return '';
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
     const createProposalObject = (): Proposal => {
         const { tableData, summaryTable, analysis: analysisText, recommendations, hashtags, groundingChunks } = analysis;
@@ -127,26 +131,30 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
         };
     };
     
-    const handleSave = () => {
-        const proposal = createProposalObject();
-        onSaveProposal(proposal);
-        
+    const handleSave = async () => {
         setIsSaving(true);
-        setSaveMessage('Salvo com sucesso!');
-        setTimeout(() => {
+        try {
+            const proposal = createProposalObject();
+            await onSaveProposal(proposal);
+            alert('Orçamento salvo com sucesso!');
+            onBack();
+        } catch (error) {
+            console.error("Erro ao salvar o orçamento:", error);
+            alert("Ocorreu um erro ao salvar o orçamento. Por favor, tente novamente.");
+        } finally {
             setIsSaving(false);
-            setSaveMessage('');
-        }, 2500);
+        }
     };
 
     const handleSaveAndPreview = async () => {
         setIsPreviewing(true);
         try {
             const newProposal = createProposalObject();
-            onSaveProposal(newProposal);
+            await onSaveProposal(newProposal);
             await generateProposalPDF('bloburl');
         } catch (err) {
             console.error("Falha ao gerar a pré-visualização do PDF", err);
+            alert("Ocorreu um erro ao salvar e gerar a pré-visualização. Por favor, tente novamente.");
         } finally {
             setIsPreviewing(false);
         }
@@ -244,24 +252,26 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
                 <div className="card">
                      <p className="form-description">Orçamento para: <strong>{analysis.companyName}</strong></p>
 
-                     <div className="address-fields-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '1.5rem', gap: '1rem' }}>
-                        <div className="input-group" style={{ gridColumn: 'span 1', marginBottom: 0 }}>
+                    <div className="contact-info-grid">
+                        <div className="form-group">
+                            <label htmlFor="contactName">Nome do contato (opcional)</label>
                             <input
+                                id="contactName"
                                 type="text"
-                                placeholder="Nome do contato (opcional)"
+                                placeholder="Ex: João Silva"
                                 value={contactName}
                                 onChange={(e) => setContactName(e.target.value)}
-                                style={{ paddingLeft: '12px' }}
                             />
                         </div>
-                        <div className="input-group" style={{ gridColumn: 'span 1', marginBottom: 0 }}>
+                        <div className="form-group">
+                            <label htmlFor="contactPhone">Telefone do contato (opcional)</label>
                             <input
+                                id="contactPhone"
                                 type="tel"
-                                placeholder="Telefone do contato (opcional)"
+                                placeholder="(00) 00000-0000"
                                 value={contactPhone}
                                 onChange={handlePhoneChange}
                                 maxLength={15}
-                                style={{ paddingLeft: '12px' }}
                             />
                         </div>
                     </div>
@@ -284,24 +294,23 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
                     <div className="services-list">
                         {services.length === 0 && <p>Nenhum serviço adicionado.</p>}
                         {services.map(service => (
-                            <div key={service.id} className="service-item">
-                                <div className="service-item-main">
-                                     <span className={`service-type-badge ${service.type}`}>{service.type === 'one-time' ? 'Pagamento Único' : 'Recorrente'}</span>
-                                     <div className="input-group">
-                                         <textarea
+                            <div key={service.id} className="service-item-wrapper">
+                                <h4 className="service-item-title">{service.type === 'one-time' ? 'Pagamento Único' : 'Recorrente'}</h4>
+                                <div className="service-item-controls">
+                                    <div className="input-group service-description-input">
+                                        <textarea
                                             placeholder="Descrição do Serviço"
                                             value={service.description}
                                             onChange={(e) => handleServiceChange(service.id, 'description', e.target.value)}
                                             rows={1}
                                         />
-                                     </div>
-                                </div>
-                                <div className="service-item-side">
+                                    </div>
                                     <div className="input-group service-price-input">
-                                         <input
+                                        <span>R$</span>
+                                        <input
                                             type="text"
-                                            placeholder="R$ 0,00"
-                                            value={service.price > 0 ? formatCurrency(service.price) : ''}
+                                            placeholder="0,00"
+                                            value={formatCurrencyInput(service.price)}
                                             onChange={(e) => handlePriceChange(service.id, e.target.value)}
                                         />
                                     </div>
@@ -337,35 +346,35 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
                     </div>
                 </div>
 
-                <div className="card" style={{ marginTop: '2rem' }}>
+                <div className="card">
                     <h3>Termos e Condições</h3>
                     <textarea value={terms} onChange={e => setTerms(e.target.value)} rows={8}></textarea>
                 </div>
                 
-                 <div className="email-proposal-card">
+                 <div className="card email-card">
                     <h3>Enviar por Email (Opcional)</h3>
-                    <p>Insira o e-mail do cliente para enviar uma cópia da proposta.</p>
-                     <div className="input-group">
+                    <p className="form-description">Insira o e-mail do cliente para enviar uma cópia da proposta.</p>
+                     <div className="form-group">
+                        <label htmlFor="clientEmail">Email do cliente</label>
                         <input
+                            id="clientEmail"
                             type="email"
-                            placeholder="Email do cliente"
+                            placeholder="email@exemplo.com"
                             value={clientEmail}
                             onChange={(e) => setClientEmail(e.target.value)}
-                            style={{ paddingLeft: '12px' }}
                         />
                     </div>
                  </div>
 
                 <div className="proposal-actions">
-                     <button className="btn-danger" onClick={onBack} disabled={isSaving || isPreviewing}>Cancelar</button>
+                     <button className="btn-cancel" onClick={onBack} disabled={isSaving || isPreviewing}>Cancelar</button>
                      <button 
                         type="button" 
                         className="btn-primary"
                         onClick={handleSave}
                         disabled={isSaving || isPreviewing}
-                        style={{minWidth: '180px'}}
                      >
-                        {saveMessage || (isSaving ? 'Salvando...' : 'Salvar Orçamento')}
+                        {isSaving ? 'Salvando...' : 'Salvar Orçamento'}
                     </button>
                     <button className="btn-success" onClick={handleSaveAndPreview} disabled={isSaving || isPreviewing}>
                         {isPreviewing ? 'Gerando PDF...' : 'Salvar e Pré-visualizar PDF'}

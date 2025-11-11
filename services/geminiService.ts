@@ -73,6 +73,9 @@ export const analyzeCompanyPresence = async (companyName: string, street: string
   const responseText = response.text;
   
   const extractSection = (startTag: string, endTag: string): string => {
+      if (!responseText) {
+        return '';
+      }
       const regex = new RegExp(`${startTag}([\\s\\S]*?)${endTag}`);
       const match = responseText.match(regex);
       return match ? match[1].trim() : '';
