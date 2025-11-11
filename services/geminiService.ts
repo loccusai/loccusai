@@ -55,56 +55,83 @@ function buildUserPrompt(companyName: string, street: string, number: string, co
     `;
 }
 
+const MAX_RETRIES = 3;
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const analyzeCompanyPresence = async (companyName: string, street: string, number: string, complement: string, neighborhood: string, city: string, state: string, keywords: string[]): Promise<{ analysisResult: Omit<AnalysisResult, 'groundingChunks'>, groundingChunks: GroundingChunk[] }> => {
   if (!process.env.API_KEY) {
     throw new Error("API key not found. Please set the API_KEY environment variable.");
   }
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: buildUserPrompt(companyName, street, number, complement, neighborhood, city, state, keywords),
-    config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        tools: [{ googleSearch: {} }, { googleMaps: {} }],
-    },
-  });
+  let lastError: Error | null = null;
 
-  const responseText = response.text;
-  
-  const extractSection = (startTag: string, endTag: string): string => {
-      if (!responseText) {
-        return '';
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: buildUserPrompt(companyName, street, number, complement, neighborhood, city, state, keywords),
+        config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            tools: [{ googleSearch: {} }, { googleMaps: {} }],
+        },
+      });
+      
+      if (response.candidates?.[0]?.promptFeedback?.blockReason) {
+        throw new Error('A sua solicitação foi bloqueada por motivos de segurança. Por favor, reformule os termos da sua pesquisa.');
       }
-      const regex = new RegExp(`${startTag}([\\s\\S]*?)${endTag}`);
-      const match = responseText.match(regex);
-      return match ? match[1].trim() : '';
-  };
 
-  const marketComparisonTable = extractSection('\\[START_MARKET_TABLE\\]', '\\[END_MARKET_TABLE\\]');
-  const summaryTableStr = extractSection('\\[START_SUMMARY_TABLE\\]', '\\[END_SUMMARY_TABLE\\]');
-  const analysis = extractSection('\\[START_ANALYSIS\\]', '\\[END_ANALYSIS\\]');
-  const recommendations = extractSection('\\[START_RECOMMENDATIONS\\]', '\\[END_RECOMMENDATIONS\\]');
-  const hashtags = extractSection('\\[START_HASHTAGS\\]', '\\[END_HASHTAGS\\]').replace(/### Hashtags Estratégicas para Visibilidade/i, '').trim();
+      const responseText = response.text;
+      
+      const extractSection = (startTag: string, endTag: string): string => {
+          if (!responseText) {
+            return '';
+          }
+          const regex = new RegExp(`${startTag}([\\s\\S]*?)${endTag}`);
+          const match = responseText.match(regex);
+          return match ? match[1].trim() : '';
+      };
 
-  if (!marketComparisonTable || !summaryTableStr || !analysis || !recommendations) {
-      console.error("Resposta da IA incompleta ou mal formatada:", responseText);
-      throw new Error("A resposta da IA não contém todas as seções necessárias. Tente novamente.");
+      const marketComparisonTable = extractSection('\\[START_MARKET_TABLE\\]', '\\[END_MARKET_TABLE\\]');
+      const summaryTableStr = extractSection('\\[START_SUMMARY_TABLE\\]', '\\[END_SUMMARY_TABLE\\]');
+      const analysis = extractSection('\\[START_ANALYSIS\\]', '\\[END_ANALYSIS\\]');
+      const recommendations = extractSection('\\[START_RECOMMENDATIONS\\]', '\\[END_RECOMMENDATIONS\\]');
+      const hashtags = extractSection('\\[START_HASHTAGS\\]', '\\[END_HASHTAGS\\]').replace(/### Hashtags Estratégicas para Visibilidade/i, '').trim();
+
+      if (!marketComparisonTable || !summaryTableStr || !analysis || !recommendations) {
+          console.error("Resposta da IA incompleta ou mal formatada:", responseText);
+          throw new Error("A resposta da IA não contém todas as seções necessárias. Tente novamente.");
+      }
+      
+      const tableData = parseMarkdownTable<CompanyData>(marketComparisonTable);
+      const summaryTableData = parseMarkdownTable<SummaryPoint>(summaryTableStr);
+      
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
+      return {
+        analysisResult: {
+            tableData,
+            summaryTable: summaryTableData,
+            analysis,
+            recommendations,
+            hashtags,
+        },
+        groundingChunks
+      };
+    } catch (error: any) {
+        lastError = error;
+        // Check for retriable errors (e.g., 503 Service Unavailable)
+        if (error.message && (error.message.includes('503') || error.message.includes('500'))) {
+            const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+            console.warn(`Tentativa ${i + 1} falhou com erro de servidor. Tentando novamente em ${delay.toFixed(0)}ms...`);
+            await sleep(delay);
+            continue;
+        }
+        // For non-retriable errors, throw immediately
+        throw error;
+    }
   }
   
-  const tableData = parseMarkdownTable<CompanyData>(marketComparisonTable);
-  const summaryTableData = parseMarkdownTable<SummaryPoint>(summaryTableStr);
-  
-  const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-
-  return {
-    analysisResult: {
-        tableData,
-        summaryTable: summaryTableData,
-        analysis,
-        recommendations,
-        hashtags,
-    },
-    groundingChunks
-  };
+  // If all retries fail, throw the last captured error
+  throw lastError;
 };

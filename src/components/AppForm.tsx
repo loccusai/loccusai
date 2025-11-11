@@ -10,6 +10,48 @@ interface AppFormProps {
     userProfile: UserProfile | null;
 }
 
+const getApiErrorMessage = (error: any): string => {
+    const defaultMessage = 'Ocorreu um erro ao gerar a análise. Tente novamente.';
+    
+    if (!error || !error.message) {
+        return defaultMessage;
+    }
+
+    let message = error.message;
+
+    try {
+        if (message.trim().startsWith('{')) {
+            const parsedError = JSON.parse(message);
+            const apiMessage = parsedError?.error?.message || '';
+            
+            if (apiMessage.toLowerCase().includes('api key expired')) {
+                return 'Sua chave de API expirou. Por favor, renove-a no Google AI Studio.';
+            }
+            if (apiMessage.toLowerCase().includes('api key not valid') || message.toLowerCase().includes('api_key_invalid')) {
+                return 'Sua chave de API não é válida. Verifique-a no Google AI Studio.';
+            }
+            if (apiMessage) {
+                return `Erro da IA: ${apiMessage}`;
+            }
+        }
+    } catch (e) {
+        // Not a JSON, fall through to plain text handling
+    }
+    
+    if (message.includes('bloqueada por motivos de segurança')) {
+        return 'Sua pesquisa foi bloqueada por filtros de segurança. Tente usar termos mais neutros.';
+    }
+    if (message.includes('não contém todas as seções necessárias')) {
+        return 'A resposta da IA está incompleta. Tente refinar sua busca ou tente novamente.';
+    }
+    if (message.includes('503') || message.includes('500')) {
+        return 'O servidor da IA está sobrecarregado. Por favor, tente novamente em alguns instantes.';
+    }
+
+    // Return original message if it's not too long or technical
+    return message.length < 200 ? message : defaultMessage;
+};
+
 const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProps) => {
     const [companyName, setCompanyName] = useState('');
     const [cep, setCep] = useState('');
@@ -60,7 +102,7 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
             }, companyName);
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Ocorreu um erro ao gerar a análise. Tente novamente.');
+            setError(getApiErrorMessage(err));
         } finally {
             setLoading(false);
         }
