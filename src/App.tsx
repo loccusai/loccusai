@@ -425,6 +425,26 @@ export default function App() {
         }
     };
     
+    const handleUpdateProposalStatus = async (proposalId: string, status: ProposalStatus) => {
+        setProposals(prevProposals =>
+            prevProposals.map(p =>
+                p.id === proposalId ? { ...p, status } : p
+            )
+        );
+
+        if (supabase && session?.user) {
+            const { error } = await supabase
+                .from('proposals')
+                .update({ status: status })
+                .eq('id', proposalId);
+
+            if (error) {
+                console.error("Erro ao atualizar status do orçamento no Supabase:", error);
+                alert('Não foi possível atualizar o status no banco de dados.');
+            }
+        }
+    };
+    
     const handleUpdateHistoryItem = async (itemToUpdate: AnalysisHistoryItem) => {
         const updatedHistory = history.map(item => item.id === itemToUpdate.id ? itemToUpdate : item);
         setHistory(updatedHistory);
@@ -552,18 +572,24 @@ export default function App() {
              case 'proposalBuilder':
                 return analysisForProposal && <ProposalBuilderPage onBack={() => { setPage('history'); setProposalToEdit(null); }} analysis={analysisForProposal} userProfile={userProfile} onSaveProposal={handleSaveProposal} proposalToEdit={proposalToEdit} />;
              case 'proposalsList':
-                return <ProposalsListPage onBack={() => setPage('history')} proposals={proposals} onUpdateProposal={handleSaveProposal} onDeleteProposal={handleDeleteProposal} onNavigateToBuilder={(proposal) => { 
-                    setProposalToEdit(proposal);
-                    const analysis: AnalysisHistoryItem = {
-                        ...proposal.analysisResult,
-                        id: proposal.analysisId,
-                        companyName: proposal.clientName,
-                        date: proposal.createdAt,
-                        status: 'synced',
-                    };
-                    setAnalysisForProposal(analysis); 
-                    setPage('proposalBuilder'); 
-                }} />;
+                return <ProposalsListPage 
+                    onBack={() => setPage('history')} 
+                    proposals={proposals} 
+                    onUpdateStatus={handleUpdateProposalStatus} 
+                    onDeleteProposal={handleDeleteProposal} 
+                    onNavigateToBuilder={(proposal) => { 
+                        setProposalToEdit(proposal);
+                        const analysis: AnalysisHistoryItem = {
+                            ...proposal.analysisResult,
+                            id: proposal.analysisId,
+                            companyName: proposal.clientName,
+                            date: proposal.createdAt,
+                            status: 'synced',
+                        };
+                        setAnalysisForProposal(analysis); 
+                        setPage('proposalBuilder'); 
+                    }} 
+                />;
              case 'serviceLibrary':
                 return <ServiceLibraryPage onBack={() => setPage('history')} services={userProfile?.serviceLibrary || []} onUpdateServices={handleUpdateServiceLibrary} />;
             default:

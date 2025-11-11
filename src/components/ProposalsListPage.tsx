@@ -4,18 +4,15 @@ import { Proposal, ProposalStatus, AnalysisHistoryItem } from '../../types';
 interface ProposalsListPageProps {
     onBack: () => void;
     proposals: Proposal[];
-    onUpdateProposal: (proposal: Proposal) => void;
+    onUpdateStatus: (proposalId: string, newStatus: ProposalStatus) => void;
     onDeleteProposal: (id: string) => void;
     onNavigateToBuilder: (proposal: Proposal) => void;
 }
 
-const ProposalsListPage = ({ onBack, proposals, onUpdateProposal, onDeleteProposal, onNavigateToBuilder }: ProposalsListPageProps) => {
+const ProposalsListPage = ({ onBack, proposals, onUpdateStatus, onDeleteProposal, onNavigateToBuilder }: ProposalsListPageProps) => {
     
     const handleStatusChange = (proposalId: string, newStatus: ProposalStatus) => {
-        const proposalToUpdate = proposals.find(p => p.id === proposalId);
-        if (proposalToUpdate) {
-            onUpdateProposal({ ...proposalToUpdate, status: newStatus });
-        }
+        onUpdateStatus(proposalId, newStatus);
     };
     
     const sortedProposals = [...proposals].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
