@@ -109,6 +109,11 @@ export const analyzeCompanyPresence = async (companyName: string, street: string
 
   const response = await analyzeWithRetry(apiCall);
 
+  if (response.promptFeedback?.blockReason) {
+    console.error("A solicitação foi bloqueada pela API Gemini.", response.promptFeedback);
+    throw new Error(`A sua solicitação foi bloqueada por motivos de segurança (${response.promptFeedback.blockReason}). Por favor, tente reformular as palavras-chave.`);
+  }
+
   const responseText = response.text;
   
   const extractSection = (startTag: string, endTag: string): string => {
