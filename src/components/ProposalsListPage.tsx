@@ -49,7 +49,7 @@ const ProposalsListPage = ({ onBack, proposals, onUpdateProposal, onDeletePropos
                                             <span>Total: {(p.totalOneTimeValue + p.totalRecurringValue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                         </div>
                                     </div>
-                                    <div className="proposal-item-status-actions">
+                                    <div className="proposal-item-actions">
                                         <select
                                             value={p.status}
                                             onChange={(e) => handleStatusChange(p.id, e.target.value as ProposalStatus)}
@@ -60,14 +60,12 @@ const ProposalsListPage = ({ onBack, proposals, onUpdateProposal, onDeletePropos
                                             <option value="Accepted">Aceito</option>
                                             <option value="Declined">Recusado</option>
                                         </select>
-                                        <div className="proposal-actions-group">
-                                            <button className="btn-icon btn-edit" title="Editar Orçamento" onClick={() => onNavigateToBuilder(p)}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                            </button>
-                                            <button className="btn-icon btn-delete" title="Excluir Orçamento" onClick={() => { if(window.confirm(`Tem certeza que deseja excluir o orçamento para "${p.clientName}"?`)) onDeleteProposal(p.id); }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                            </button>
-                                        </div>
+                                        <button className="btn-icon btn-edit" title="Editar Orçamento" onClick={() => onNavigateToBuilder(p)}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                        </button>
+                                        <button className="btn-icon btn-delete" title="Excluir Orçamento" onClick={() => { if(window.confirm(`Tem certeza que deseja excluir o orçamento para "${p.clientName}"?`)) onDeleteProposal(p.id); }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                        </button>
                                     </div>
                                 </div>
                             );

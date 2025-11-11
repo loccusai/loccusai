@@ -1445,6 +1445,72 @@
             color: var(--text-color);
         }
         /* == END: Proposal Builder Page Styles == */
+        
+        /* == START: Proposals List Page Styles == */
+        .proposals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .proposal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .proposal-item-info {
+            flex: 1 1 300px;
+        }
+        .proposal-item-client {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .proposal-item-services {
+            font-size: 0.9rem;
+            color: var(--icon-color);
+            margin-bottom: 0.75rem;
+        }
+        .proposal-item-meta {
+            font-size: 0.85rem;
+            color: var(--icon-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .proposal-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+        .status-select {
+            padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            font-weight: 500;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            cursor: pointer;
+        }
+        
+        .status-select.status-Draft { border-color: #a0aec0; }
+        .status-select.status-Sent { border-color: #63b3ed; }
+        .status-select.status-Accepted { border-color: var(--success-color); }
+        .status-select.status-Declined { border-color: var(--danger-color); }
+        /* == END: Proposals List Page Styles == */
 
         @media (max-width: 768px) {
             .hero-title {
