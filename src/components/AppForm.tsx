@@ -10,41 +10,6 @@ interface AppFormProps {
     userProfile: UserProfile | null;
 }
 
-const getFriendlyErrorMessage = (error: any): string => {
-    const defaultMessage = 'Ocorreu um erro ao gerar a análise. Por favor, tente novamente mais tarde.';
-    if (error && error.message) {
-        let message = error.message;
-
-        // Tenta extrair uma mensagem de erro JSON da string
-        try {
-            const jsonMatch = message.match(/({.*})/);
-            if (jsonMatch && jsonMatch[0]) {
-                const errorJson = JSON.parse(jsonMatch[0]);
-                const geminiError = errorJson.error;
-                if (geminiError) {
-                    if (geminiError.status === 'UNAVAILABLE' || geminiError.code === 503) {
-                        return 'O modelo de IA está sobrecarregado no momento. A aplicação tentou novamente algumas vezes sem sucesso. Por favor, tente novamente em alguns minutos.';
-                    }
-                    if (geminiError.message) {
-                        return `Erro da IA: ${geminiError.message}`;
-                    }
-                }
-            }
-        } catch (e) {
-            // Não é um JSON, ignora e usa a mensagem de texto
-        }
-
-        // Fallback para checagem de texto
-        if (message.includes('503') || message.includes('UNAVAILABLE') || message.includes('overloaded')) {
-             return 'O modelo de IA está sobrecarregado no momento. A aplicação tentou novamente algumas vezes sem sucesso. Por favor, tente novamente em alguns minutos.';
-        }
-        
-        return message;
-    }
-    return defaultMessage;
-};
-
-
 const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProps) => {
     const [companyName, setCompanyName] = useState('');
     const [cep, setCep] = useState('');
@@ -95,7 +60,7 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
             }, companyName);
         } catch (err: any) {
             console.error(err);
-            setError(getFriendlyErrorMessage(err));
+            setError(err.message || 'Ocorreu um erro ao gerar a análise. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -218,7 +183,7 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
                 </div>
             </div>
 
-            {error && <p className="auth-error" style={{ marginBottom: '1.5rem' }}>{error}</p>}
+            {error && <p className="error-box">{error}</p>}
             <button type="submit" className="submit-btn" disabled={loading}>
                  {loading ? <span className="button-spinner"></span> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>}
                 {loading ? 'Gerando Análise...' : (isOnline ? 'Gerar Análise com IA' : 'Salvar para Gerar Online')}
