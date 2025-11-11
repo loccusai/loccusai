@@ -141,7 +141,6 @@ const ProposalBuilderPage = ({ onBack, analysis, userProfile, onSaveProposal, pr
         } catch (error) {
             console.error("Erro ao salvar o orçamento:", error);
             alert("Ocorreu um erro ao salvar o orçamento. Por favor, tente novamente.");
-        } finally {
             setIsSaving(false);
         }
     };
