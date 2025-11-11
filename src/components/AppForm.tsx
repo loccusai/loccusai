@@ -88,12 +88,6 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
 
     return (
     <div className="card form-card">
-         {loading && (
-            <div className="loading-overlay">
-                <div className="loading-spinner"></div>
-                <p className="loading-text">Analisando... Isso pode levar até 1 minuto.</p>
-            </div>
-        )}
         <button className="back-button" onClick={onBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             Voltar ao Dashboard
@@ -183,7 +177,7 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
                 </div>
             </div>
 
-            {error && <p className="error-box">{error}</p>}
+            {error && <p className="auth-error">{error}</p>}
             <button type="submit" className="submit-btn" disabled={loading}>
                  {loading ? <span className="button-spinner"></span> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>}
                 {loading ? 'Gerando Análise...' : (isOnline ? 'Gerar Análise com IA' : 'Salvar para Gerar Online')}
