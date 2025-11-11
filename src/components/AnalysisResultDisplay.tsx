@@ -50,7 +50,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
 
         return (
             <div className="card">
-                <h3>Fontes da Pesquisa</h3>
+                <h2>Fontes da Pesquisa</h2>
                 <ul className="sources-list">
                     {Array.from(sources).map((source, index) => (
                         <li key={index}>
@@ -68,24 +68,26 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
         const recommendationsArray = cleanedText.split(/\n\s*(?=\d+\.\s*)/).filter(Boolean);
 
         if (recommendationsArray.length === 0) {
-            return <p className="recommendation-content">{cleanedText}</p>;
+            return <p className="recommendation-content" style={{ whiteSpace: 'pre-wrap' }}>{cleanedText}</p>;
         }
 
         return (
             <ol className="recommendations-list">
                 {recommendationsArray.map((rec, index) => {
-                    const match = rec.match(/^\d+\.\s*\*\*(.*?)\*\*\s*:\s*(.*)/s);
+                    // Updated regex to find titles in the format "1. **Title:** Content..."
+                    const match = rec.match(/^\d+\.\s*\*\*(.*?):\*\*\s*(.*)/s);
                     if (match) {
                         const [, title, content] = match;
                         return (
                             <li key={index}>
-                                <div className="recommendation-content">
-                                    <strong className="recommendation-title">{title}</strong>
-                                    {content.trim()}
-                                </div>
+                                {/* Renders the title in bold, re-adding the colon for display. */}
+                                <strong className="recommendation-title">{title.trim()}:</strong>
+                                {/* Renders the content in a separate paragraph to ensure it's on a new line. */}
+                                <p className="recommendation-content" style={{ whiteSpace: 'pre-wrap', marginTop: '0.25rem' }}>{content.trim()}</p>
                             </li>
                         );
                     }
+                    // Fallback for simple numbered list items without a bold title.
                     return (
                         <li key={index}>
                             <p className="recommendation-content">{rec.replace(/^\d+\.\s*/, '').trim()}</p>
@@ -100,31 +102,32 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
         if (!analysisText) return null;
         const cleanedText = analysisText.replace(/^###\s*Análise Detalhada\s*/i, '').trim();
         
-        // Corrected regex to split by the pattern "**Title**:"
-        // This looks for "**", then any characters that are not asterisks, then "**:", making it robust.
-        const points = cleanedText.split(/(?=\*\*(?:[^*]+)\*\*:\s*)/).filter(Boolean);
+        // Splits the text by the pattern "**Title:**", where the colon is inside the asterisks.
+        // The positive lookahead (?=...) ensures the delimiter is part of the next split element.
+        const points = cleanedText.split(/(?=\*\*.+?:\*\*)/).filter(Boolean);
 
-        if (points.length <= 1) {
-            return <p className="summary-text" style={{ whiteSpace: 'pre-wrap' }}>{cleanedText}</p>;
+        if (points.length <= 1 && !cleanedText.startsWith('**')) {
+            // Fallback for text that doesn't follow the topic structure
+            return <p className="analysis-content" style={{ whiteSpace: 'pre-wrap' }}>{cleanedText}</p>;
         }
 
         return (
             <ul className="analysis-list">
                 {points.map((point, index) => {
-                     // Corrected regex to extract the title and content from "**Title**: Content..."
-                     const match = point.match(/\*\*(.*?)\*\*:\s*(.*)/s);
+                     // Extracts the title (the part before the colon, inside the asterisks) and the subsequent content.
+                     const match = point.match(/\*\*(.*?):\*\*\s*(.*)/s);
                      if (match) {
                         const [, title, content] = match;
                         return (
                              <li key={index}>
-                                <div className="analysis-content" style={{ whiteSpace: 'pre-wrap' }}>
-                                    <strong className="recommendation-title">{title.trim()}</strong>
-                                    {content.trim()}
-                                </div>
+                                {/* Renders the title in bold, re-adding the colon for display. */}
+                                <strong className="recommendation-title">{title.trim()}:</strong>
+                                {/* Renders the content in a separate paragraph to ensure it's on a new line. */}
+                                <p className="analysis-content" style={{ whiteSpace: 'pre-wrap', marginTop: '0.25rem' }}>{content.trim()}</p>
                             </li>
-                        )
+                        );
                      }
-                      // Fallback for any part that doesn't match the expected pattern
+                      // Fallback for any part that doesn't match the expected pattern.
                       return (
                          <li key={index}>
                             <p className="analysis-content" style={{ whiteSpace: 'pre-wrap' }}>{point.trim()}</p>
@@ -227,7 +230,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
                 <div className="card market-comparison-card">
                     <div className="card-title-with-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        <h3>Comparação de Mercado</h3>
+                        <h2>Comparação de Mercado</h2>
                     </div>
                     {tableData.length > 0 ? (
                         <div className="table-responsive">
@@ -250,7 +253,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
                 <div className="card summary-card">
                     <div className="card-title-with-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-                        <h3>Resumo da Análise</h3>
+                        <h2>Resumo da Análise</h2>
                     </div>
                     {summaryTable.length > 0 ? (
                         <div className="table-responsive">
@@ -274,7 +277,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
                     <div className="card-header-with-action">
                         <div className="card-title-with-icon">
                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-                            <h3>Análise Detalhada</h3>
+                            <h2>Análise Detalhada</h2>
                         </div>
                          <button className="copy-button" onClick={() => copyToClipboard(analysis)}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -288,7 +291,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
                     <div className="card-header-with-action">
                         <div className="card-title-with-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                            <h3>Recomendações Estratégicas</h3>
+                            <h2>Recomendações Estratégicas</h2>
                         </div>
                         <button className="copy-button" onClick={() => copyToClipboard(recommendations)}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -302,7 +305,7 @@ const AnalysisResultDisplay = ({ result, onGenerateProposal, onBackToHistory }: 
                     <div className="card-header-with-action">
                         <div className="card-title-with-icon">
                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
-                            <h3>Hashtags Estratégicas</h3>
+                            <h2>Hashtags Estratégicas</h2>
                         </div>
                         <button className="copy-button" onClick={() => copyToClipboard(hashtags)}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
