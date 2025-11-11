@@ -24,11 +24,17 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setSaveSuccess(false); // Reset on new save
-        await onUpdateProfile(profileData);
-        setSaving(false);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000); // Revert after 3 seconds
+        setSaveSuccess(false);
+        try {
+            await onUpdateProfile(profileData);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error) {
+            console.error("Falha ao salvar perfil:", error);
+            // Optionally, set an error state here to show a message to the user
+        } finally {
+            setSaving(false);
+        }
     };
     
     const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>, prefix: 'company' | '') => {

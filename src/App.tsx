@@ -4,7 +4,7 @@ import { AnalysisHistoryItem, AnalysisResult, Proposal, ProposalServiceItem, Pro
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { analyzeCompanyPresence } from '../services/geminiService';
-import { parseMarkdownTable } from './utils/parsers';
+import { deepConvertToCamelCase, deepConvertToSnakeCase } from './utils/dataTransforms';
 import supabase from './supabaseClient'; // Importa a instância centralizada
 
 import LandingPage from './components/LandingPage';
@@ -22,113 +22,6 @@ interface SyncAction {
   type: 'CREATE_ANALYSIS' | 'UPDATE_ANALYSIS' | 'DELETE_ANALYSIS' | 'UPSERT_PROPOSAL' | 'DELETE_PROPOSAL';
   payload: any;
   timestamp: number;
-}
-
-
-// --- Funções de Mapeamento ---
-function analysisToSnakeCase(analysis: Partial<AnalysisHistoryItem>): any {
-  const {
-    companyName,
-    tableData,
-    summaryTable,
-    groundingChunks,
-    ...rest
-  } = analysis;
-  return {
-    ...rest,
-    company_name: companyName,
-    table_data: tableData,
-    summary_table: summaryTable,
-    grounding_chunks: groundingChunks,
-  };
-}
-
-function analysisFromSnakeCase(item: any): AnalysisHistoryItem {
-  const {
-    company_name,
-    table_data,
-    summary_table,
-    grounding_chunks,
-    ...rest
-  } = item;
-  return {
-    ...rest,
-    companyName: company_name,
-    tableData: table_data || [],
-    summaryTable: summary_table || [],
-    groundingChunks: grounding_chunks || [],
-    date: new Date(item.date),
-  } as AnalysisHistoryItem;
-}
-
-function proposalToSnakeCase(proposal: Proposal): any {
-  const {
-    analysisId,
-    clientName,
-    createdAt,
-    expiresAt,
-    totalOneTimeValue,
-    totalRecurringValue,
-    analysisResult,
-    clientEmail,
-    contactName,
-    contactPhone,
-    termsAndConditions,
-    ...rest
-  } = proposal;
-
-  const { tableData, summaryTable, analysis, recommendations, hashtags, groundingChunks } = analysisResult;
-  const cleanAnalysisResult = {
-    tableData, summaryTable, analysis, recommendations, hashtags,
-    groundingChunks: groundingChunks || null,
-  };
-
-  return {
-    ...rest,
-    analysis_id: analysisId,
-    client_name: clientName,
-    created_at: createdAt,
-    expires_at: expiresAt,
-    total_one_time_value: totalOneTimeValue,
-    total_recurring_value: totalRecurringValue,
-    analysis_result: cleanAnalysisResult,
-    client_email: clientEmail,
-    contact_name: contactName,
-    contact_phone: contactPhone,
-    terms_and_conditions: termsAndConditions,
-  };
-}
-
-function proposalFromSnakeCase(item: any): Proposal {
-  const {
-    analysis_id,
-    client_name,
-    created_at,
-    expires_at,
-    total_one_time_value,
-    total_recurring_value,
-    analysis_result,
-    client_email,
-    contact_name,
-    contact_phone,
-    terms_and_conditions,
-    ...rest
-  } = item;
-  
-  return {
-    ...rest,
-    analysisId: analysis_id,
-    clientName: client_name,
-    createdAt: new Date(created_at),
-    expiresAt: expires_at ? new Date(expires_at) : undefined,
-    totalOneTimeValue: total_one_time_value,
-    totalRecurringValue: total_recurring_value,
-    analysisResult: analysis_result,
-    clientEmail: client_email,
-    contactName: contact_name,
-    contactPhone: contact_phone,
-    termsAndConditions: terms_and_conditions,
-  } as Proposal;
 }
 
 
@@ -242,7 +135,7 @@ export default function App() {
                         };
                         
                         const payload = {
-                           ...analysisToSnakeCase(newHistoryItem),
+                           ...(deepConvertToSnakeCase(newHistoryItem) as any),
                            user_id: session.user.id
                         };
 
@@ -251,7 +144,7 @@ export default function App() {
                         
                         setHistory(prev => prev.map(item => {
                             if (item.id === tempId) {
-                                return analysisFromSnakeCase(data);
+                                return deepConvertToCamelCase(data) as AnalysisHistoryItem;
                             }
                             return item;
                         }));
@@ -270,7 +163,7 @@ export default function App() {
                     }
                     case 'UPSERT_PROPOSAL': {
                          const payload = {
-                            ...proposalToSnakeCase(action.payload),
+                            ...(deepConvertToSnakeCase(action.payload) as any),
                             user_id: session.user.id,
                         };
                         const { error } = await supabase.from('proposals').upsert(payload);
@@ -285,8 +178,8 @@ export default function App() {
                 }
                 processedTimestamps.add(action.timestamp);
             } catch (error) {
-                console.error('Falha ao processar ação da fila. Tentará novamente mais tarde:', action, error);
-                break; 
+                console.error(`Falha ao processar a ação da fila: ${action.type}. O erro foi:`, error);
+                // Continue to the next action instead of breaking the loop
             }
         }
 
@@ -305,9 +198,9 @@ export default function App() {
             .select('*')
             .eq('user_id', session.user.id);
         if (historyError) {
-            console.error("Erro ao buscar histórico do Supabase:", historyError.message, historyError);
+            console.error("Erro ao buscar histórico do Supabase:", historyError);
         } else if (remoteHistory) {
-            const parsedHistory = remoteHistory.map(analysisFromSnakeCase);
+            const parsedHistory = remoteHistory.map(item => deepConvertToCamelCase(item) as AnalysisHistoryItem);
             setHistory(parsedHistory);
         }
 
@@ -316,9 +209,9 @@ export default function App() {
             .select('*')
             .eq('user_id', session.user.id);
         if (proposalsError) {
-            console.error("Erro ao buscar propostas do Supabase:", proposalsError.message, proposalsError);
+            console.error("Erro ao buscar propostas do Supabase:", proposalsError);
         } else if (remoteProposals) {
-            const parsedProposals = remoteProposals.map(proposalFromSnakeCase);
+            const parsedProposals = remoteProposals.map(item => deepConvertToCamelCase(item) as Proposal);
             setProposals(parsedProposals);
         }
     }, [session, isOnline, setHistory, setProposals]);
@@ -337,7 +230,7 @@ export default function App() {
         if (!supabase) {
             const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
              if (hasSeenLanding) {
-                setPage('history');
+                setPage('auth');
              } else {
                  setPage('landing');
              }
@@ -356,7 +249,7 @@ export default function App() {
                 if (error && error.code === 'PGRST116') {
                     const newUserProfile: Partial<UserProfile> = {
                         id: session.user.id,
-                        email: session.user.email,
+                        email: session.user.email ?? '',
                         name: session.user.user_metadata.full_name,
                         picture: session.user.user_metadata.picture,
                     };
@@ -366,9 +259,9 @@ export default function App() {
                         .select()
                         .single();
                     if (insertError) console.error("Erro ao criar perfil:", insertError);
-                    else setUserProfile(newProfileData as UserProfile);
+                    else setUserProfile(deepConvertToCamelCase(newProfileData) as UserProfile);
                 } else if (data) {
-                    setUserProfile(data as UserProfile);
+                    setUserProfile(deepConvertToCamelCase(data) as UserProfile);
                 }
                 setPage(currentPage => {
                     if (currentPage === 'landing' || currentPage === 'auth') {
@@ -411,18 +304,18 @@ export default function App() {
         setHistory(prev => [newHistoryItem, ...prev]);
 
         if (supabase && session?.user) {
-            const payload = {
-                ...analysisToSnakeCase(newHistoryItem),
+            const payload: any = {
+                ...(deepConvertToSnakeCase(newHistoryItem)),
                 user_id: session.user.id
             };
             delete payload.id;
 
             const { data, error } = await supabase.from('analyses').insert(payload).select().single();
             if (error) {
-                console.error("Erro ao salvar análise no Supabase:", error.message, error);
+                console.error("Erro ao salvar análise no Supabase:", error);
                 setCurrentResult(newHistoryItem);
             } else if (data) {
-                const savedItem: AnalysisHistoryItem = analysisFromSnakeCase(data);
+                const savedItem: AnalysisHistoryItem = deepConvertToCamelCase(data) as AnalysisHistoryItem;
                 setHistory(prev => prev.map(item => item.id === tempId ? savedItem : item));
                 setCurrentResult(savedItem);
             }
@@ -444,18 +337,27 @@ export default function App() {
 
     const handleUpdateProfile = async (profileUpdate: Partial<UserProfile>) => {
         if (!userProfile) return;
+        const previousProfile = { ...userProfile };
         const updatedProfile = { ...userProfile, ...profileUpdate };
-        setUserProfile(updatedProfile);
+        setUserProfile(updatedProfile); // Optimistic update
+    
         if (supabase && session?.user) {
-             const { error } = await supabase
+            const snakeCaseUpdate = deepConvertToSnakeCase(profileUpdate);
+            const { error } = await supabase
                 .from('profiles')
-                .update(profileUpdate)
+                .update(snakeCaseUpdate)
                 .eq('id', session.user.id);
-            if(error) console.error("Erro ao atualizar perfil no Supabase:", error);
+    
+            if (error) {
+                console.error("Erro ao atualizar perfil no Supabase:", error);
+                setUserProfile(previousProfile); // Rollback on error
+                throw new Error(`Falha ao salvar: ${error.message}`);
+            }
         }
     };
     
     const handleSaveProposal = async (proposal: Proposal) => {
+        const originalProposals = [...proposals];
         const existingIndex = proposals.findIndex(p => p.id === proposal.id);
         let updatedProposals;
         if (existingIndex > -1) {
@@ -465,26 +367,33 @@ export default function App() {
         }
         setProposals(updatedProposals);
 
+        const action: SyncAction = { type: 'UPSERT_PROPOSAL', payload: proposal, timestamp: Date.now() };
+
         if (!isOnline) {
-            setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPSERT_PROPOSAL' && a.payload.id === proposal.id)), { type: 'UPSERT_PROPOSAL', payload: proposal, timestamp: Date.now() }]);
+            setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPSERT_PROPOSAL' && a.payload.id === proposal.id)), action]);
             return;
         }
 
         if (supabase && session?.user) {
-            const payload = { ...proposalToSnakeCase(proposal), user_id: session.user.id };
+            const payload = { ...(deepConvertToSnakeCase(proposal) as any), user_id: session.user.id };
             const { error } = await supabase.from('proposals').upsert(payload);
             if (error) {
-                console.error("Erro ao salvar proposta no Supabase:", error.message, error);
-                setSyncQueue(prev => [...prev, { type: 'UPSERT_PROPOSAL', payload: proposal, timestamp: Date.now() }]);
+                console.error("Erro ao salvar proposta no Supabase:", error);
+                setProposals(originalProposals); // Rollback
+                setSyncQueue(prev => [...prev, action]);
+                throw error; // Propagate error to UI
             }
         }
     };
 
     const handleDeleteProposal = async (id: string) => {
+        const originalProposals = [...proposals];
         setProposals(prev => prev.filter(p => p.id !== id));
 
+        const action: SyncAction = { type: 'DELETE_PROPOSAL', payload: { id }, timestamp: Date.now() };
+
         if (!isOnline) {
-             setSyncQueue(prev => [...prev, { type: 'DELETE_PROPOSAL', payload: { id }, timestamp: Date.now() }]);
+             setSyncQueue(prev => [...prev, action]);
             return;
         }
 
@@ -492,21 +401,25 @@ export default function App() {
             const { error } = await supabase.from('proposals').delete().eq('id', id);
             if(error) {
                 console.error("Erro ao deletar proposta do Supabase:", error);
-                setSyncQueue(prev => [...prev, { type: 'DELETE_PROPOSAL', payload: { id }, timestamp: Date.now() }]);
+                setProposals(originalProposals); // Rollback
+                setSyncQueue(prev => [...prev, action]);
                 alert("Ocorreu um erro ao excluir o orçamento. A exclusão foi agendada.");
             }
         }
     };
     
     const handleUpdateProposalStatus = async (proposalId: string, status: ProposalStatus) => {
+        const originalProposals = [...proposals];
         const updatedProposal = proposals.find(p => p.id === proposalId);
         if (!updatedProposal) return;
         
         const newProposalState = { ...updatedProposal, status };
         setProposals(prevProposals => prevProposals.map(p => p.id === proposalId ? newProposalState : p));
 
+        const action: SyncAction = { type: 'UPSERT_PROPOSAL', payload: newProposalState, timestamp: Date.now() };
+
         if (!isOnline) {
-            setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPSERT_PROPOSAL' && a.payload.id === proposalId)), { type: 'UPSERT_PROPOSAL', payload: newProposalState, timestamp: Date.now() }]);
+            setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPSERT_PROPOSAL' && a.payload.id === proposalId)), action]);
             return;
         }
 
@@ -514,28 +427,36 @@ export default function App() {
             const { error } = await supabase.from('proposals').update({ status }).eq('id', proposalId);
             if (error) {
                 console.error("Erro ao atualizar status do orçamento no Supabase:", error);
-                setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPSERT_PROPOSAL' && a.payload.id === proposalId)), { type: 'UPSERT_PROPOSAL', payload: newProposalState, timestamp: Date.now() }]);
-                alert('Não foi possível atualizar o status no banco de dados. A alteração foi salva localmente.');
+                setProposals(originalProposals); // Rollback
+                setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPSERT_PROPOSAL' && a.payload.id === proposalId)), action]);
+                alert('Não foi possível atualizar o status. A alteração foi salva localmente para sincronização posterior.');
             }
         }
     };
     
     const handleUpdateHistoryItem = async (itemToUpdate: AnalysisHistoryItem) => {
+        const originalHistory = [...history];
         const updatedHistory = history.map(item => item.id === itemToUpdate.id ? itemToUpdate : item);
         setHistory(updatedHistory);
 
+        const action: SyncAction = { type: 'UPDATE_ANALYSIS', payload: { id: itemToUpdate.id, companyName: itemToUpdate.companyName }, timestamp: Date.now() };
+
         if (!isOnline) {
-             setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPDATE_ANALYSIS' && a.payload.id === itemToUpdate.id)), { type: 'UPDATE_ANALYSIS', payload: { id: itemToUpdate.id, companyName: itemToUpdate.companyName }, timestamp: Date.now() }]);
+             setSyncQueue(prev => [...prev.filter(a => !(a.type === 'UPDATE_ANALYSIS' && a.payload.id === itemToUpdate.id)), action]);
             return;
         }
 
         if (supabase && session?.user) {
             const { error } = await supabase.from('analyses').update({ company_name: itemToUpdate.companyName }).eq('id', itemToUpdate.id);
-            if (error) console.error("Erro ao atualizar item do histórico no Supabase:", error);
+            if (error) {
+                console.error("Erro ao atualizar item do histórico no Supabase:", error);
+                setHistory(originalHistory); // Rollback
+            }
         }
     };
     
     const handleDeleteHistoryItem = async (id: string) => {
+        const originalHistory = [...history];
         setHistory(prev => prev.filter(item => item.id !== id));
 
         if (id.startsWith('pending_')) {
@@ -545,8 +466,10 @@ export default function App() {
             return;
         }
 
+        const action: SyncAction = { type: 'DELETE_ANALYSIS', payload: { id }, timestamp: Date.now() };
+
         if (!isOnline) {
-            setSyncQueue(prev => [...prev, { type: 'DELETE_ANALYSIS', payload: { id }, timestamp: Date.now() }]);
+            setSyncQueue(prev => [...prev, action]);
             return;
         }
         
@@ -555,7 +478,8 @@ export default function App() {
             
             if (error) {
                 console.error("Erro ao deletar item do histórico do Supabase:", error);
-                setSyncQueue(prev => [...prev, { type: 'DELETE_ANALYSIS', payload: { id }, timestamp: Date.now() }]);
+                setHistory(originalHistory); // Rollback
+                setSyncQueue(prev => [...prev, action]);
                 alert("Ocorreu um erro ao excluir a análise. A exclusão foi agendada.");
             }
         }
