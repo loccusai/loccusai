@@ -40,6 +40,43 @@ Gere uma lista de 10 a 15 hashtags separadas por espaços, começando na linha s
 O tom deve ser profissional, direto e baseado nos dados fornecidos. NÃO retorne um objeto JSON. Retorne apenas o texto com as seções demarcadas.
 `;
 
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+const analyzeWithRetry = async (
+  apiCall: () => Promise<any>,
+  maxRetries = 3,
+  initialDelay = 2000,
+  maxDelay = 10000
+) => {
+  let attempt = 0;
+  let currentDelay = initialDelay;
+
+  while (attempt < maxRetries) {
+    try {
+      return await apiCall();
+    } catch (error: any) {
+      attempt++;
+      let isRetryable = false;
+      let errorMessage = error.message || '';
+
+      if (errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('overloaded')) {
+          isRetryable = true;
+      }
+      
+      if (isRetryable && attempt < maxRetries) {
+        console.warn(`Attempt ${attempt} failed with a retryable error. Retrying in ${currentDelay}ms...`);
+        await delay(currentDelay);
+        currentDelay = Math.min(currentDelay * 2, maxDelay);
+      } else {
+        console.error(`API call failed after ${attempt} attempts.`, error);
+        throw error;
+      }
+    }
+  }
+  throw new Error('Retry logic failed unexpectedly.');
+};
+
+
 function buildUserPrompt(companyName: string, street: string, number: string, complement: string, neighborhood: string, city: string, state: string, keywords: string[]): string {
   const addressParts = [street, number, complement, neighborhood].filter(Boolean);
   const mainAddress = addressParts.join(', ');
@@ -61,7 +98,7 @@ export const analyzeCompanyPresence = async (companyName: string, street: string
   }
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-  const response = await ai.models.generateContent({
+  const apiCall = () => ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: buildUserPrompt(companyName, street, number, complement, neighborhood, city, state, keywords),
     config: {
@@ -69,6 +106,8 @@ export const analyzeCompanyPresence = async (companyName: string, street: string
         tools: [{ googleSearch: {} }, { googleMaps: {} }],
     },
   });
+
+  const response = await analyzeWithRetry(apiCall);
 
   const responseText = response.text;
   
