@@ -26,6 +26,41 @@ interface SyncAction {
 
 
 // --- Funções de Mapeamento ---
+function analysisToSnakeCase(analysis: Partial<AnalysisHistoryItem>): any {
+  const {
+    companyName,
+    tableData,
+    summaryTable,
+    groundingChunks,
+    ...rest
+  } = analysis;
+  return {
+    ...rest,
+    company_name: companyName,
+    table_data: tableData,
+    summary_table: summaryTable,
+    grounding_chunks: groundingChunks,
+  };
+}
+
+function analysisFromSnakeCase(item: any): AnalysisHistoryItem {
+  const {
+    company_name,
+    table_data,
+    summary_table,
+    grounding_chunks,
+    ...rest
+  } = item;
+  return {
+    ...rest,
+    companyName: company_name,
+    tableData: table_data || [],
+    summaryTable: summary_table || [],
+    groundingChunks: grounding_chunks || [],
+    date: new Date(item.date),
+  } as AnalysisHistoryItem;
+}
+
 function proposalToSnakeCase(proposal: Proposal): any {
   const {
     analysisId,
@@ -206,13 +241,9 @@ export default function App() {
                             status: 'synced',
                         };
                         
-                        const { tableData, summaryTable, groundingChunks: gc, status, ...rest } = newHistoryItem;
-                        const payload = { 
-                            ...rest, 
-                            table_data: tableData,
-                            summary_table: summaryTable,
-                            grounding_chunks: gc,
-                            user_id: session.user.id 
+                        const payload = {
+                           ...analysisToSnakeCase(newHistoryItem),
+                           user_id: session.user.id
                         };
 
                         const { data, error } = await supabase.from('analyses').insert(payload).select().single();
@@ -220,14 +251,7 @@ export default function App() {
                         
                         setHistory(prev => prev.map(item => {
                             if (item.id === tempId) {
-                                const { table_data, summary_table, grounding_chunks, ...restOfData } = data;
-                                return {
-                                    ...restOfData,
-                                    date: new Date(data.date),
-                                    tableData: table_data || [],
-                                    summaryTable: summary_table || [],
-                                    groundingChunks: grounding_chunks || [],
-                                } as AnalysisHistoryItem;
+                                return analysisFromSnakeCase(data);
                             }
                             return item;
                         }));
@@ -235,7 +259,7 @@ export default function App() {
                     }
                     case 'UPDATE_ANALYSIS': {
                         const { id, companyName } = action.payload;
-                        const { error } = await supabase.from('analyses').update({ companyName }).eq('id', id);
+                        const { error } = await supabase.from('analyses').update({ company_name: companyName }).eq('id', id);
                         if (error) throw error;
                         break;
                     }
@@ -281,19 +305,10 @@ export default function App() {
             .select('*')
             .eq('user_id', session.user.id);
         if (historyError) {
-            console.error("Erro ao buscar histórico do Supabase:", historyError);
+            console.error("Erro ao buscar histórico do Supabase:", historyError.message, historyError);
         } else if (remoteHistory) {
-            const parsedHistory = remoteHistory.map(item => {
-                const { table_data, summary_table, grounding_chunks, ...rest } = item;
-                return {
-                    ...rest,
-                    tableData: table_data || [],
-                    summaryTable: summary_table || [],
-                    groundingChunks: grounding_chunks || [],
-                    date: new Date(item.date),
-                };
-            });
-            setHistory(parsedHistory as AnalysisHistoryItem[]);
+            const parsedHistory = remoteHistory.map(analysisFromSnakeCase);
+            setHistory(parsedHistory);
         }
 
         const { data: remoteProposals, error: proposalsError } = await supabase
@@ -301,7 +316,7 @@ export default function App() {
             .select('*')
             .eq('user_id', session.user.id);
         if (proposalsError) {
-            console.error("Erro ao buscar propostas do Supabase:", proposalsError);
+            console.error("Erro ao buscar propostas do Supabase:", proposalsError.message, proposalsError);
         } else if (remoteProposals) {
             const parsedProposals = remoteProposals.map(proposalFromSnakeCase);
             setProposals(parsedProposals);
@@ -396,28 +411,18 @@ export default function App() {
         setHistory(prev => [newHistoryItem, ...prev]);
 
         if (supabase && session?.user) {
-            const { id, tableData, summaryTable, groundingChunks, status, ...rest } = newHistoryItem;
             const payload = {
-                ...rest,
-                table_data: tableData,
-                summary_table: summaryTable,
-                grounding_chunks: groundingChunks,
+                ...analysisToSnakeCase(newHistoryItem),
                 user_id: session.user.id
             };
+            delete payload.id;
 
             const { data, error } = await supabase.from('analyses').insert(payload).select().single();
             if (error) {
                 console.error("Erro ao salvar análise no Supabase:", error.message, error);
                 setCurrentResult(newHistoryItem);
             } else if (data) {
-                const { table_data, summary_table, grounding_chunks, ...restOfData } = data;
-                const savedItem: AnalysisHistoryItem = {
-                    ...restOfData,
-                    tableData: table_data || [],
-                    summaryTable: summary_table || [],
-                    groundingChunks: grounding_chunks || [],
-                    date: new Date(data.date),
-                };
+                const savedItem: AnalysisHistoryItem = analysisFromSnakeCase(data);
                 setHistory(prev => prev.map(item => item.id === tempId ? savedItem : item));
                 setCurrentResult(savedItem);
             }
@@ -525,7 +530,7 @@ export default function App() {
         }
 
         if (supabase && session?.user) {
-            const { error } = await supabase.from('analyses').update({ companyName: itemToUpdate.companyName }).eq('id', itemToUpdate.id);
+            const { error } = await supabase.from('analyses').update({ company_name: itemToUpdate.companyName }).eq('id', itemToUpdate.id);
             if (error) console.error("Erro ao atualizar item do histórico no Supabase:", error);
         }
     };
