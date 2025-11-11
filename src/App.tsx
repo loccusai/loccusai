@@ -198,7 +198,7 @@ export default function App() {
             .select('*')
             .eq('user_id', session.user.id);
         if (historyError) {
-            console.error("Erro ao buscar histórico do Supabase:", historyError);
+            console.error("Erro ao buscar histórico do Supabase:", JSON.stringify(historyError, null, 2));
         } else if (remoteHistory) {
             const parsedHistory = remoteHistory.map(item => deepConvertToCamelCase(item) as AnalysisHistoryItem);
             setHistory(parsedHistory);
@@ -209,7 +209,7 @@ export default function App() {
             .select('*')
             .eq('user_id', session.user.id);
         if (proposalsError) {
-            console.error("Erro ao buscar propostas do Supabase:", proposalsError);
+            console.error("Erro ao buscar propostas do Supabase:", JSON.stringify(proposalsError, null, 2));
         } else if (remoteProposals) {
             const parsedProposals = remoteProposals.map(item => deepConvertToCamelCase(item) as Proposal);
             setProposals(parsedProposals);
@@ -327,12 +327,25 @@ export default function App() {
     };
 
     const handleLogout = async () => {
+        // Clear all user-specific data from local storage and state first.
         setUserProfile(null);
+        setHistory([]);
+        setProposals([]);
+        setSyncQueue([]);
+    
+        // Then, sign out from Supabase. The onAuthStateChange listener will automatically
+        // handle navigating the user to the authentication page.
         if (supabase) {
             const { error } = await supabase.auth.signOut();
-            if (error) console.error("Erro ao fazer logout:", error);
+            if (error) {
+                console.error("Erro ao fazer logout:", error);
+                // Even if sign-out fails, force navigation to the auth page for a consistent state.
+                setPage('auth');
+            }
+        } else {
+            // If Supabase isn't available, manually navigate.
+            setPage('auth');
         }
-        setPage('auth');
     };
 
     const handleUpdateProfile = async (profileUpdate: Partial<UserProfile>) => {
