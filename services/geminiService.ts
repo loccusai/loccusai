@@ -24,7 +24,12 @@ Crie uma TABELA DE RESUMO VISUAL em formato markdown, comparando a empresa alvo 
 
 [START_ANALYSIS]
 ### Análise Detalhada
-Escreva uma análise detalhada elaborando os pontos da tabela de resumo.
+Elabore uma análise detalhada. A resposta DEVE ser estruturada em múltiplos tópicos, cada um começando com um título em negrito seguido por dois pontos. CADA TÓPICO DEVE ESTAR EM UMA NOVA LINHA.
+
+Exemplo de formato OBRIGATÓRIO:
+**Reputação Online:** Análise sobre a reputação...
+**Visibilidade no GMB:** Análise sobre a visibilidade...
+**Pontos Fortes:** Análise sobre os pontos fortes...
 [END_ANALYSIS]
 
 [START_RECOMMENDATIONS]
