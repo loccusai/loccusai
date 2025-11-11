@@ -1066,11 +1066,24 @@
         }
         .form-group input {
             width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            padding: 0.75rem 1rem;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             background-color: var(--input-bg-color);
             color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-group .input-wrapper input {
+            padding-left: 2.5rem;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+        }
+        [data-theme='dark'] .form-group input:focus {
+            box-shadow: 0 0 0 2px rgba(56, 161, 105, 0.3);
         }
         
         .form-grid {

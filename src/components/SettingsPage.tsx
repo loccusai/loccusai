@@ -74,11 +74,11 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
                     <h3>Meus Dados</h3>
                     <div className="form-group">
                         <label>Nome Completo</label>
-                        <input type="text" name="name" value={profileData.name || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/>
+                        <input type="text" name="name" value={profileData.name || ''} onChange={handleChange} />
                     </div>
                      <div className="form-group">
                         <label>Telefone</label>
-                        <input type="tel" name="phone" value={profileData.phone || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/>
+                        <input type="tel" name="phone" value={profileData.phone || ''} onChange={handleChange} />
                     </div>
                 </div>
 
@@ -86,31 +86,49 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
                     <h3>Dados da Minha Agência (para orçamentos)</h3>
                     <div className="form-group">
                         <label>Nome da Agência</label>
-                        <input type="text" name="companyName" value={profileData.companyName || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/>
+                        <input type="text" name="companyName" value={profileData.companyName || ''} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label>CNPJ</label>
-                        <input type="text" name="companyCnpj" value={profileData.companyCnpj || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/>
+                        <input type="text" name="companyCnpj" value={profileData.companyCnpj || ''} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label>Email da Agência</label>
-                        <input type="email" name="companyEmail" value={profileData.companyEmail || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/>
+                        <input type="email" name="companyEmail" value={profileData.companyEmail || ''} onChange={handleChange} />
                     </div>
                      <div className="form-group">
                         <label>Telefone da Agência</label>
-                        <input type="tel" name="companyPhone" value={profileData.companyPhone || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/>
+                        <input type="tel" name="companyPhone" value={profileData.companyPhone || ''} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label>CEP</label>
-                        <input type="text" name="companyCep" value={profileData.companyCep || ''} onChange={handleChange} onBlur={(e) => handleCepBlur(e, 'company')} maxLength={9} style={{paddingLeft: '12px'}}/>
+                        <input type="text" name="companyCep" value={profileData.companyCep || ''} onChange={handleChange} onBlur={(e) => handleCepBlur(e, 'company')} maxLength={9} />
                     </div>
-                    <div className="address-fields-grid" style={{marginBottom: 0}}>
-                        <div className="input-group address-street"><input type="text" name="companyStreet" placeholder="Rua" value={profileData.companyStreet || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
-                        <div className="input-group address-number"><input type="text" name="companyNumber" placeholder="Nº" value={profileData.companyNumber || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
-                        <div className="input-group address-neighborhood"><input type="text" name="companyNeighborhood" placeholder="Bairro" value={profileData.companyNeighborhood || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
-                        <div className="input-group address-complement"><input type="text" name="companyComplement" placeholder="Complemento" value={profileData.companyComplement || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
-                        <div className="input-group address-city"><input type="text" name="companyCity" placeholder="Cidade" value={profileData.companyCity || ''} onChange={handleChange} style={{paddingLeft: '12px'}}/></div>
-                        <div className="input-group address-state"><input type="text" name="companyState" placeholder="UF" value={profileData.companyState || ''} onChange={handleChange} maxLength={2} style={{paddingLeft: '12px'}}/></div>
+                    <div className="form-grid">
+                        <div className="form-group full-width">
+                            <label>Rua</label>
+                            <input type="text" name="companyStreet" value={profileData.companyStreet || ''} onChange={handleChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>Nº</label>
+                            <input type="text" name="companyNumber" value={profileData.companyNumber || ''} onChange={handleChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>Bairro</label>
+                            <input type="text" name="companyNeighborhood" value={profileData.companyNeighborhood || ''} onChange={handleChange} />
+                        </div>
+                         <div className="form-group full-width">
+                            <label>Complemento</label>
+                            <input type="text" name="companyComplement" value={profileData.companyComplement || ''} onChange={handleChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>Cidade</label>
+                            <input type="text" name="companyCity" value={profileData.companyCity || ''} onChange={handleChange} />
+                        </div>
+                        <div className="form-group">
+                            <label>UF</label>
+                            <input type="text" name="companyState" value={profileData.companyState || ''} onChange={handleChange} maxLength={2} />
+                        </div>
                     </div>
                 </div>
 
@@ -131,7 +149,7 @@ const SettingsPage = ({ onBack, userProfile, onUpdateProfile }: SettingsPageProp
             </div>
             
              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                <button type="submit" disabled={saving || saveSuccess}>
+                <button type="submit" disabled={saving || saveSuccess} className="btn-primary">
                     {saving ? 'Salvando...' : (saveSuccess ? 'Salvo com Sucesso!' : 'Salvar Alterações')}
                 </button>
             </div>
