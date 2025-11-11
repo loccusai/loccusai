@@ -89,7 +89,7 @@ const AppForm = ({ onBack, onResult, onQueueAnalysis, userProfile }: AppFormProp
     return (
     <div className="card form-card">
          {loading && (
-            <div className="loading-overlay" style={{ '--card-bg-color-rgb': '255, 255, 255' } as React.CSSProperties}>
+            <div className="loading-overlay">
                 <div className="loading-spinner"></div>
                 <p className="loading-text">Analisando... Isso pode levar até 1 minuto.</p>
             </div>

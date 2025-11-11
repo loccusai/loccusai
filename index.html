@@ -1017,6 +1017,9 @@
         }
         
         /* Analysis Form Styles */
+        .form-card {
+            position: relative; /* Necessário para o posicionamento do overlay */
+        }
         .form-card .form-headline {
             font-size: 1.5rem;
             font-weight: 700;
@@ -1103,6 +1106,40 @@
         }
         .form-card .submit-btn:hover {
             background-color: var(--primary-hover-color);
+        }
+
+        /* Estilos do Overlay de Carregamento */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 12px;
+        }
+        [data-theme='dark'] .loading-overlay {
+            background-color: rgba(18, 18, 18, 0.9);
+        }
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 1rem;
+            font-weight: 500;
         }
 
         /* == START: Analysis Result Page Styles == */
@@ -1511,6 +1548,65 @@
         .status-select.status-Accepted { border-color: var(--success-color); }
         .status-select.status-Declined { border-color: var(--danger-color); }
         /* == END: Proposals List Page Styles == */
+        
+        /* == START: Confirmation Modal Styles == */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg-color);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 90%;
+            max-width: 450px;
+            border: 1px solid var(--border-color);
+            transform: scale(0.95);
+            opacity: 0;
+            animation: modal-pop-in 0.3s ease forwards;
+        }
+
+        @keyframes modal-pop-in {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .modal-message {
+            color: var(--icon-color);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .modal-actions button {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+        }
+        /* == END: Confirmation Modal Styles == */
 
         @media (max-width: 768px) {
             .hero-title {

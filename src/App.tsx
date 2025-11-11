@@ -117,6 +117,42 @@ const MobileHeader = ({ pageTitle, onToggleSidebar }: MobileHeaderProps) => {
     );
 };
 
+// --- Componente de Modal de Confirmação ---
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    confirmText?: string;
+    cancelText?: string;
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+    isOpen,
+    title,
+    message,
+    onConfirm,
+    onCancel,
+    confirmText = 'OK',
+    cancelText = 'Cancelar'
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay" onClick={onCancel}>
+            <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}>
+                <h2 id="modal-title" className="modal-title">{title}</h2>
+                <p className="modal-message">{message}</p>
+                <div className="modal-actions">
+                    <button className="btn-secondary" onClick={onCancel}>{cancelText}</button>
+                    <button className="btn-danger" onClick={onConfirm}>{confirmText}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Componente Principal ---
 export default function App() {
@@ -132,6 +168,12 @@ export default function App() {
     const [analysisForProposal, setAnalysisForProposal] = useState<AnalysisHistoryItem | null>(null);
     const [proposalToEdit, setProposalToEdit] = useState<Proposal | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [confirmation, setConfirmation] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    } | null>(null);
     const isOnline = useOnlineStatus();
     
     useEffect(() => {
@@ -521,6 +563,15 @@ export default function App() {
             await handleUpdateProfile({ serviceLibrary: services });
         }
     };
+    
+    const requestConfirmation = (title: string, message: string, onConfirm: () => void) => {
+        setConfirmation({
+            isOpen: true,
+            title,
+            message,
+            onConfirm,
+        });
+    };
 
     const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
 
@@ -551,6 +602,7 @@ export default function App() {
                     onNavigateToProposalBuilder={(analysis) => { setProposalToEdit(null); setAnalysisForProposal(analysis); setPage('proposalBuilder'); }}
                     onUpdateHistoryItem={handleUpdateHistoryItem}
                     onDeleteHistoryItem={handleDeleteHistoryItem}
+                    requestConfirmation={requestConfirmation}
                 />;
             case 'app':
                 return <AppForm 
@@ -588,7 +640,8 @@ export default function App() {
                         };
                         setAnalysisForProposal(analysis); 
                         setPage('proposalBuilder'); 
-                    }} 
+                    }}
+                    requestConfirmation={requestConfirmation}
                 />;
              case 'serviceLibrary':
                 return <ServiceLibraryPage onBack={() => setPage('history')} services={userProfile?.serviceLibrary || []} onUpdateServices={handleUpdateServiceLibrary} />;
@@ -626,6 +679,20 @@ export default function App() {
                 <LandingPage onStart={handleStart} />
             ) : (
                 <AuthPage />
+            )}
+            {confirmation?.isOpen && (
+                <ConfirmationModal
+                    isOpen={confirmation.isOpen}
+                    title={confirmation.title}
+                    message={confirmation.message}
+                    onConfirm={() => {
+                        confirmation.onConfirm();
+                        setConfirmation(null);
+                    }}
+                    onCancel={() => setConfirmation(null)}
+                    confirmText="OK"
+                    cancelText="Cancelar"
+                />
             )}
         </div>
     );
