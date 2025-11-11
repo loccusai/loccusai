@@ -355,7 +355,12 @@ export default function App() {
                 } else if (data) {
                     setUserProfile(data as UserProfile);
                 }
-                setPage('history');
+                setPage(currentPage => {
+                    if (currentPage === 'landing' || currentPage === 'auth') {
+                        return 'history';
+                    }
+                    return currentPage;
+                });
             } else {
                  const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
                  if (hasSeenLanding) {
